@@ -1,0 +1,16 @@
+{
+  "name": "net.32ba.ao-baker.Runtime",
+  "rootNamespace": "net._32ba.AOBaker",
+  "references": [
+    "VRC.SDKBase"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

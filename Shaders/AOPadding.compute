@@ -1,0 +1,97 @@
+// Jump Flood Algorithm (JFA) ベースのパディング
+// O(log N) パスでテクスチャ全体のUVシーム周辺を補完する
+// 各パスでステップサイズを半減: N/2 → N/4 → ... → 1
+
+#pragma kernel JFAInit
+#pragma kernel JFAStep
+#pragma kernel JFAApply
+
+// JFA Seed初期化: 有効テクセルの座標を記録、無効テクセルは(-1,-1)
+Texture2D<float4> _ValidMask;
+RWTexture2D<int2> _SeedMap;   // 最近傍の有効テクセル座標
+
+int _Width;
+int _Height;
+
+[numthreads(8, 8, 1)]
+void JFAInit(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Width || id.y >= (uint)_Height)
+        return;
+
+    if (_ValidMask[int2(id.xy)].w >= 0.5)
+        _SeedMap[id.xy] = int2(id.xy);
+    else
+        _SeedMap[id.xy] = int2(-1, -1);
+}
+
+// JFA Step: 各テクセルが8方向+自身のステップサイズ離れた位置のシードと比較
+Texture2D<int2> _SeedInput;
+RWTexture2D<int2> _SeedOutput;
+int _StepSize;
+
+[numthreads(8, 8, 1)]
+void JFAStep(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Width || id.y >= (uint)_Height)
+        return;
+
+    int2 center = int2(id.xy);
+    int2 bestSeed = _SeedInput[center];
+    float bestDist = bestSeed.x >= 0
+        ? length(float2(center - bestSeed))
+        : 1e10;
+
+    for (int dy = -1; dy <= 1; dy++)
+    {
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            if (dx == 0 && dy == 0) continue;
+
+            int2 sampleCoord = center + int2(dx, dy) * _StepSize;
+            if (sampleCoord.x < 0 || sampleCoord.x >= _Width ||
+                sampleCoord.y < 0 || sampleCoord.y >= _Height)
+                continue;
+
+            int2 seed = _SeedInput[sampleCoord];
+            if (seed.x < 0) continue;
+
+            float dist = length(float2(center - seed));
+            if (dist < bestDist)
+            {
+                bestDist = dist;
+                bestSeed = seed;
+            }
+        }
+    }
+
+    _SeedOutput[id.xy] = bestSeed;
+}
+
+// 最終適用: シードマップの最近傍有効テクセルからAO値をコピー
+Texture2D<float4> _AOInput;
+Texture2D<int2> _FinalSeedMap;
+RWTexture2D<float4> _AOOutput;
+
+[numthreads(8, 8, 1)]
+void JFAApply(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Width || id.y >= (uint)_Height)
+        return;
+
+    int2 center = int2(id.xy);
+
+    // 有効テクセルはそのまま
+    if (_ValidMask[center].w >= 0.5)
+    {
+        _AOOutput[id.xy] = _AOInput[center];
+        return;
+    }
+
+    // 無効テクセル: 最近傍の有効テクセルからコピー
+    int2 seed = _FinalSeedMap[center];
+    if (seed.x >= 0)
+        _AOOutput[id.xy] = _AOInput[seed];
+    else
+        _AOOutput[id.xy] = float4(1, 1, 1, 1);
+}

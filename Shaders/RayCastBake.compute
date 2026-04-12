@@ -1,0 +1,182 @@
+// RayCast AO Bake Compute Shader
+
+#pragma kernel BakeRayCastAO
+
+struct BVHNode
+{
+    float3 boundsMin;
+    int leftFirst;
+    float3 boundsMax;
+    int count;
+};
+
+struct BVHTriangle
+{
+    float3 v0, v1, v2;
+};
+
+Texture2D<float4> _WorldPositions;
+Texture2D<float4> _WorldNormals;
+StructuredBuffer<BVHNode> _BVHNodes;
+StructuredBuffer<BVHTriangle> _BVHTriangles;
+
+RWTexture2D<float4> _AOResult;
+
+Texture2D<float4> _AOBakeMask;
+SamplerState sampler_AOBakeMask;
+
+int _Width;
+int _Height;
+int _RayCount;
+float _MaxRayDistance;
+float _RayOriginOffset;
+float _Intensity;
+int _HasMask;
+
+float Hash(float2 p)
+{
+    float3 p3 = frac(float3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return frac((p3.x + p3.y) * p3.z);
+}
+
+float3 CosineSampleHemisphere(int index, float3 normal, float2 seed)
+{
+    float u1 = Hash(seed + float2(index * 0.123, index * 0.456));
+    float u2 = Hash(seed + float2(index * 0.789, index * 0.012));
+
+    float r = sqrt(u1);
+    float theta = 6.28318530718 * u2;
+    float x = r * cos(theta);
+    float y = r * sin(theta);
+    float z = sqrt(max(0.0, 1.0 - u1));
+
+    float3 up = abs(normal.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0);
+    float3 tangent = normalize(cross(up, normal));
+    float3 bitangent = cross(normal, tangent);
+
+    return normalize(tangent * x + bitangent * y + normal * z);
+}
+
+bool RayTriangleIntersect(float3 orig, float3 dir, float3 v0, float3 v1, float3 v2, float maxDist)
+{
+    float3 edge1 = v1 - v0;
+    float3 edge2 = v2 - v0;
+    float3 h = cross(dir, edge2);
+    float a = dot(edge1, h);
+
+    if (abs(a) < 1e-8)
+        return false;
+
+    float f = 1.0 / a;
+    float3 s = orig - v0;
+    float u = f * dot(s, h);
+
+    if (u < 0.0 || u > 1.0)
+        return false;
+
+    float3 q = cross(s, edge1);
+    float v = f * dot(dir, q);
+
+    if (v < 0.0 || u + v > 1.0)
+        return false;
+
+    float t = f * dot(edge2, q);
+    return t > 0.0 && t < maxDist;
+}
+
+bool RayAABBIntersect(float3 orig, float3 invDir, float3 bmin, float3 bmax, float maxDist)
+{
+    float3 t0 = (bmin - orig) * invDir;
+    float3 t1 = (bmax - orig) * invDir;
+    float3 tmin = min(t0, t1);
+    float3 tmax = max(t0, t1);
+
+    float enter = max(max(tmin.x, tmin.y), tmin.z);
+    float exit = min(min(tmax.x, tmax.y), tmax.z);
+
+    return enter <= exit && exit >= 0.0 && enter < maxDist;
+}
+
+bool TraceRay(float3 origin, float3 direction, float maxDist)
+{
+    float3 invDir = 1.0 / direction;
+
+    int stack[32];
+    int stackPtr = 0;
+    stack[stackPtr++] = 0;
+
+    while (stackPtr > 0)
+    {
+        int nodeIdx = stack[--stackPtr];
+        BVHNode node = _BVHNodes[nodeIdx];
+
+        if (!RayAABBIntersect(origin, invDir, node.boundsMin, node.boundsMax, maxDist))
+            continue;
+
+        if (node.count > 0)
+        {
+            for (int i = 0; i < node.count; i++)
+            {
+                BVHTriangle tri = _BVHTriangles[node.leftFirst + i];
+                if (RayTriangleIntersect(origin, direction, tri.v0, tri.v1, tri.v2, maxDist))
+                    return true;
+            }
+        }
+        else
+        {
+            stack[stackPtr++] = nodeIdx + 1;
+            stack[stackPtr++] = node.leftFirst;
+        }
+    }
+
+    return false;
+}
+
+[numthreads(8, 8, 1)]
+void BakeRayCastAO(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Width || id.y >= (uint)_Height)
+        return;
+
+    float4 worldPosData = _WorldPositions[id.xy];
+    float4 worldNrmData = _WorldNormals[id.xy];
+
+    float3 worldPos = worldPosData.xyz;
+    float3 worldNrm = worldNrmData.xyz;
+
+    if (worldPosData.w < 0.5 || length(worldNrm) < 0.001)
+    {
+        _AOResult[id.xy] = float4(1, 1, 1, 1);
+        return;
+    }
+
+    // マスクチェック: 黒い部分はAO生成をスキップ（白=1.0を出力）
+    if (_HasMask)
+    {
+        float2 maskUV = float2((id.x + 0.5) / _Width, (id.y + 0.5) / _Height);
+        float maskVal = _AOBakeMask.SampleLevel(sampler_AOBakeMask, maskUV, 0).r;
+        if (maskVal < 0.5)
+        {
+            _AOResult[id.xy] = float4(1, 1, 1, 1);
+            return;
+        }
+    }
+
+    worldNrm = normalize(worldNrm);
+    float3 rayOrigin = worldPos + worldNrm * _RayOriginOffset;
+
+    float2 seed = float2(id.x * 1.37, id.y * 2.41);
+    int occluded = 0;
+
+    for (int i = 0; i < _RayCount; i++)
+    {
+        float3 dir = CosineSampleHemisphere(i, worldNrm, seed);
+        if (TraceRay(rayOrigin, dir, _MaxRayDistance))
+            occluded++;
+    }
+
+    float ao = 1.0 - ((float)occluded / (float)_RayCount);
+    ao = saturate(pow(abs(ao), _Intensity));
+    _AOResult[id.xy] = float4(ao, ao, ao, 1);
+}

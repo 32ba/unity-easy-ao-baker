@@ -1,0 +1,19 @@
+{
+  "name": "net.32ba.ao-baker.Editor",
+  "rootNamespace": "net._32ba.AOBaker.Editor",
+  "references": [
+    "net.32ba.ao-baker.Runtime",
+    "nadena.dev.ndmf"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

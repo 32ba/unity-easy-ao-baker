@@ -1,0 +1,60 @@
+// AO Blur Compute Shader
+
+#pragma kernel BlurHorizontalUnmasked
+#pragma kernel BlurVerticalUnmasked
+
+Texture2D<float4> _Input;
+RWTexture2D<float4> _Output;
+
+int _Width;
+int _Height;
+float _BlurRadius;
+
+static const int KERNEL_SIZE = 7;
+static const float KERNEL_WEIGHTS[7] = {
+    0.00598, 0.060626, 0.241843, 0.383103, 0.241843, 0.060626, 0.00598
+};
+
+float4 SampleClamped(int2 coord)
+{
+    coord = clamp(coord, int2(0, 0), int2(_Width - 1, _Height - 1));
+    return _Input[coord];
+}
+
+[numthreads(8, 8, 1)]
+void BlurHorizontalUnmasked(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Width || id.y >= (uint)_Height) return;
+
+    int2 center = int2(id.xy);
+    float4 totalValue = 0;
+    int halfKernel = KERNEL_SIZE / 2;
+
+    for (int i = 0; i < KERNEL_SIZE; i++)
+    {
+        int offset = i - halfKernel;
+        int2 sampleCoord = center + int2(int(round(offset * _BlurRadius)), 0);
+        totalValue += SampleClamped(sampleCoord) * KERNEL_WEIGHTS[i];
+    }
+
+    _Output[id.xy] = totalValue;
+}
+
+[numthreads(8, 8, 1)]
+void BlurVerticalUnmasked(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Width || id.y >= (uint)_Height) return;
+
+    int2 center = int2(id.xy);
+    float4 totalValue = 0;
+    int halfKernel = KERNEL_SIZE / 2;
+
+    for (int i = 0; i < KERNEL_SIZE; i++)
+    {
+        int offset = i - halfKernel;
+        int2 sampleCoord = center + int2(0, int(round(offset * _BlurRadius)));
+        totalValue += SampleClamped(sampleCoord) * KERNEL_WEIGHTS[i];
+    }
+
+    _Output[id.xy] = totalValue;
+}

@@ -1,0 +1,116 @@
+// SSAO AO Bake Compute Shader
+// 多方向深度テクスチャを使用してUV空間のAOを計算する
+
+#pragma kernel BakeAO
+
+// 入力
+Texture2D<float4> _WorldPositions;   // UV空間ラスタライズ結果: ワールド座標
+Texture2D<float4> _WorldNormals;     // UV空間ラスタライズ結果: ワールド法線
+Texture2DArray<float> _DepthTextures; // 多方向深度マップ
+StructuredBuffer<float4x4> _ViewProjMatrices; // 各方向のVP行列
+StructuredBuffer<float3> _CameraForwards;     // 各カメラの前方ベクトル
+
+SamplerState sampler_linear_clamp;
+
+int _Width;
+int _Height;
+int _DirectionCount;
+int _SampleCount;
+float _Radius;
+float _Bias;
+float _Intensity;
+int _DepthTexSize;
+
+// 出力
+RWTexture2D<float4> _AOResult;
+
+float Hash(float2 p)
+{
+    float3 p3 = frac(float3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return frac((p3.x + p3.y) * p3.z);
+}
+
+float3 CosineSampleHemisphere(int index, float3 normal, float2 seed)
+{
+    float u1 = Hash(seed + float2(index * 0.123, index * 0.456));
+    float u2 = Hash(seed + float2(index * 0.789, index * 0.012));
+
+    float r = sqrt(u1);
+    float theta = 6.28318530718 * u2;
+    float x = r * cos(theta);
+    float y = r * sin(theta);
+    float z = sqrt(max(0.0, 1.0 - u1));
+
+    float3 up = abs(normal.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0);
+    float3 tangent = normalize(cross(up, normal));
+    float3 bitangent = cross(normal, tangent);
+
+    return normalize(tangent * x + bitangent * y + normal * z);
+}
+
+[numthreads(8, 8, 1)]
+void BakeAO(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Width || id.y >= (uint)_Height)
+        return;
+
+    float4 worldPosData = _WorldPositions[id.xy];
+    float4 worldNrmData = _WorldNormals[id.xy];
+
+    float3 worldPos = worldPosData.xyz;
+    float3 worldNrm = worldNrmData.xyz;
+
+    // 無効テクセル（UV空間にメッシュが存在しない）
+    if (worldPosData.w < 0.5 || length(worldNrm) < 0.001)
+    {
+        _AOResult[id.xy] = float4(1, 1, 1, 1);
+        return;
+    }
+
+    worldNrm = normalize(worldNrm);
+
+    float occlusion = 0.0;
+    int validSamples = 0;
+    float2 randomSeed = float2(id.x * 1.37, id.y * 2.41);
+
+    for (int dir = 0; dir < _DirectionCount; dir++)
+    {
+        float3 camForward = _CameraForwards[dir];
+
+        // 法線が背面を向くカメラ方向はスキップ
+        if (dot(worldNrm, -camForward) < 0.0)
+            continue;
+
+        float4x4 vp = _ViewProjMatrices[dir];
+
+        for (int s = 0; s < _SampleCount; s++)
+        {
+            float3 sampleOffset = CosineSampleHemisphere(s, worldNrm, randomSeed + float2(dir, s));
+            float3 samplePos = worldPos + sampleOffset * _Radius;
+
+            // カメラ空間に射影
+            float4 projPos = mul(vp, float4(samplePos, 1.0));
+            float2 uv = projPos.xy / projPos.w * 0.5 + 0.5;
+            float sampleDepth = projPos.z / projPos.w;
+
+            // UV範囲外チェック
+            if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0)
+                continue;
+
+            // 深度テクスチャから実際の深度を取得
+            float sceneDepth = _DepthTextures.SampleLevel(
+                sampler_linear_clamp, float3(uv, dir), 0);
+
+            // 遮蔽判定
+            if (sampleDepth > sceneDepth + _Bias)
+                occlusion += 1.0;
+
+            validSamples++;
+        }
+    }
+
+    float ao = 1.0 - (occlusion / max(validSamples, 1));
+    ao = saturate(pow(abs(ao), _Intensity));
+    _AOResult[id.xy] = float4(ao, ao, ao, 1);
+}
