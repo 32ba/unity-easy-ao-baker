@@ -254,6 +254,23 @@ namespace net._32ba.EasyAOBaker.Editor
                 "烘焙失败: {0}",
                 "베이크 실패: {0}"),
             ["progress.baking"] = ("Baking AO...", "AOをベイク中...", "正在烘焙AO...", "AO 베이크 중..."),
+
+            // Update notification
+            ["update.available"] = (
+                "Update Available",
+                "アップデートあり",
+                "有可用更新",
+                "업데이트 가능"),
+            ["update.current_to_latest"] = (
+                "Current: {0} → Latest: {1}",
+                "現在: {0} → 最新: {1}",
+                "当前: {0} → 最新: {1}",
+                "현재: {0} → 최신: {1}"),
+            ["update.open_release_page"] = (
+                "Open Release Page",
+                "リリースページを開く",
+                "打开发布页面",
+                "릴리스 페이지 열기"),
         };
     }
 }

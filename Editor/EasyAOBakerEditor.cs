@@ -12,12 +12,24 @@ namespace net._32ba.EasyAOBaker.Editor
         private bool _shaderSettingsFoldout = true;
         private bool _advancedFoldout = false;
 
+        private void OnEnable()
+        {
+            ReleaseChecker.OnUpdateCheckCompleted += Repaint;
+        }
+
+        private void OnDisable()
+        {
+            ReleaseChecker.OnUpdateCheckCompleted -= Repaint;
+        }
+
         public override void OnInspectorGUI()
         {
             var baker = (EasyAOBaker)target;
             serializedObject.Update();
 
             L.DrawLanguageSwitcher();
+
+            DrawUpdateNotification();
 
             var renderer = baker.GetComponent<Renderer>();
             if (renderer == null)
@@ -52,6 +64,24 @@ namespace net._32ba.EasyAOBaker.Editor
                 EditorGUILayout.Space();
                 EditorGUILayout.HelpBox(L.Tr("msg.play_mode_preserve"), MessageType.Info);
             }
+        }
+
+        private static void DrawUpdateNotification()
+        {
+            if (!ReleaseChecker.HasNewVersion || string.IsNullOrEmpty(ReleaseChecker.LatestVersion))
+                return;
+
+            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                EditorGUILayout.LabelField(L.Tr("update.available"), EditorStyles.boldLabel);
+                EditorGUILayout.LabelField(L.Format("update.current_to_latest",
+                    VersionUtility.FormatVersion(ReleaseChecker.GetCurrentVersion()),
+                    VersionUtility.FormatVersion(ReleaseChecker.LatestVersion)));
+
+                if (GUILayout.Button(L.Tr("update.open_release_page")))
+                    ReleaseChecker.OpenReleasePage();
+            }
+            EditorGUILayout.Space();
         }
 
         private static void DrawBakeNowButton(EasyAOBaker baker)
