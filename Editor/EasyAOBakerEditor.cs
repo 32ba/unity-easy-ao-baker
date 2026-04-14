@@ -28,13 +28,14 @@ namespace net._32ba.EasyAOBaker.Editor
 
             EditorGUI.BeginChangeCheck();
 
-            DrawBasicSettings(baker);
-
-            EditorGUILayout.Space();
-
             var detectedShader = baker.targetShader != AOTargetShader.Auto
                 ? baker.targetShader
                 : DetectShaderFromRenderer(renderer);
+
+            DrawBasicSettings(baker, detectedShader);
+
+            EditorGUILayout.Space();
+
             DrawShaderSettings(detectedShader);
 
             EditorGUILayout.Space();
@@ -51,17 +52,11 @@ namespace net._32ba.EasyAOBaker.Editor
 
             DrawBakeNowButton(baker);
 
-            EditorGUILayout.Space();
-
             if (Application.isPlaying)
+            {
+                EditorGUILayout.Space();
                 EditorGUILayout.HelpBox(L.Tr("msg.play_mode_preserve"), MessageType.Info);
-
-            EditorGUILayout.Space();
-
-            EditorGUILayout.HelpBox(
-                L.Format("msg.target_info",
-                    renderer.GetType().Name, renderer.gameObject.name, baker.bakeMode, detectedShader),
-                MessageType.Info);
+            }
         }
 
         private static void DrawBakeNowButton(EasyAOBaker baker)
@@ -134,7 +129,7 @@ namespace net._32ba.EasyAOBaker.Editor
             return start.root != null ? start.root.gameObject : null;
         }
 
-        private void DrawBasicSettings(EasyAOBaker baker)
+        private void DrawBasicSettings(EasyAOBaker baker, AOTargetShader detectedShader)
         {
             EditorGUILayout.LabelField(L.Tr("section.bake_settings"), EditorStyles.boldLabel);
 
@@ -149,6 +144,14 @@ namespace net._32ba.EasyAOBaker.Editor
 
             DrawField("intensity", "field.intensity");
             DrawField("targetShader", "field.target_shader");
+            if (baker.targetShader == AOTargetShader.Auto)
+            {
+                string detectedText = detectedShader == AOTargetShader.Auto
+                    ? L.Tr("field.target_shader.not_detected")
+                    : L.Format("field.target_shader.detected", detectedShader);
+                using (new EditorGUI.IndentLevelScope())
+                    EditorGUILayout.LabelField(detectedText, EditorStyles.miniLabel);
+            }
             DrawField("aoMask", "field.ao_mask");
         }
 

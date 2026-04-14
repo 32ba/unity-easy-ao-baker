@@ -65,6 +65,16 @@ namespace net._32ba.EasyAOBaker.Editor
                 "AOを適用するシェーダースロット。Autoでマテリアルから自動判定。",
                 "AO应用的着色器槽。Auto会从材质自动检测。",
                 "AO를 적용할 셰이더 슬롯. Auto는 머티리얼에서 자동 감지."),
+            ["field.target_shader.detected"] = (
+                "→ Detected: {0}",
+                "→ 検出: {0}",
+                "→ 检测到: {0}",
+                "→ 감지: {0}"),
+            ["field.target_shader.not_detected"] = (
+                "Not detected (select manually)",
+                "検出できません（手動で選択してください）",
+                "无法检测（请手动选择）",
+                "감지 실패 (수동으로 선택해 주세요)"),
             ["field.ao_mask"] = ("AO Mask", "AOマスク", "AO遮罩", "AO 마스크"),
             ["field.ao_mask.tooltip"] = (
                 "AO generation mask (white=generate, black=skip). Same UV space.",
