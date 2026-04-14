@@ -507,6 +507,7 @@ namespace net._32ba.EasyAOBaker.Editor
                 importer.sRGBTexture = false;
                 importer.alphaIsTransparency = false;
                 importer.mipmapEnabled = true;
+                importer.streamingMipmaps = true;
                 importer.SaveAndReimport();
             }
 
