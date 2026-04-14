@@ -71,10 +71,21 @@ namespace net._32ba.EasyAOBaker.Editor
                 "→ 检测到: {0}",
                 "→ 감지: {0}"),
             ["field.target_shader.not_detected"] = (
-                "Not detected (select manually)",
-                "検出できません（手動で選択してください）",
-                "无法检测（请手动选择）",
-                "감지 실패 (수동으로 선택해 주세요)"),
+                "Not detected",
+                "検出できません",
+                "无法检测",
+                "감지 실패"),
+            ["section.materials"] = (
+                "Materials to bake",
+                "AOを書き込むマテリアル",
+                "烘焙目标材质",
+                "AO를 쓸 머티리얼"),
+            ["section.materials.tooltip"] = (
+                "Toggle each slot to include/exclude from AO writing. Unchecked slots keep their original material unchanged.",
+                "スロットごとに AO 書き込みの ON/OFF を切り替え。OFF のスロットはオリジナルマテリアルがそのまま残る。",
+                "按槽位切换AO写入开关。关闭的槽位保留原始材质不变。",
+                "슬롯별로 AO 쓰기 ON/OFF 전환. OFF인 슬롯은 원본 머티리얼이 그대로 유지됩니다."),
+            ["materials.none_slot"] = ("(None)", "(なし)", "(无)", "(없음)"),
             ["field.ao_mask"] = ("AO Mask", "AOマスク", "AO遮罩", "AO 마스크"),
             ["field.ao_mask.tooltip"] = (
                 "AO generation mask (white=generate, black=skip). Same UV space.",

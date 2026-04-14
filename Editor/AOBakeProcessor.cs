@@ -440,6 +440,13 @@ namespace net._32ba.EasyAOBaker.Editor
                     continue;
                 }
 
+                // このスロットはAO書き込み対象外 → オリジナルを維持
+                if (!settings.ShouldBakeMaterial(i))
+                {
+                    newMats[i] = mat;
+                    continue;
+                }
+
                 var clonedMat = new Material(mat);
                 clonedMat.name = mat.name + "_AO";
 

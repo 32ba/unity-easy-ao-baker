@@ -54,6 +54,17 @@ namespace net._32ba.EasyAOBaker
         [Header("Output")]
         public AOTargetShader targetShader = AOTargetShader.Auto;
 
+        /// <summary>
+        /// マテリアルスロットごとにAOを書き込むかのフラグ。null または長さ不一致のときは全スロット対象。
+        /// </summary>
+        public bool[] materialBakeFlags;
+
+        public bool ShouldBakeMaterial(int index)
+        {
+            if (materialBakeFlags == null || index >= materialBakeFlags.Length) return true;
+            return materialBakeFlags[index];
+        }
+
         [Header("Filter")]
         [Range(0, 5)]
         public int blurIterations = 1;

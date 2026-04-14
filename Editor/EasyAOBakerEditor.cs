@@ -28,14 +28,13 @@ namespace net._32ba.EasyAOBaker.Editor
 
             EditorGUI.BeginChangeCheck();
 
-            var detectedShader = baker.targetShader != AOTargetShader.Auto
-                ? baker.targetShader
-                : DetectShaderFromRenderer(renderer);
-
-            DrawBasicSettings(baker, detectedShader);
+            DrawBasicSettings(baker);
 
             EditorGUILayout.Space();
 
+            var detectedShader = baker.targetShader != AOTargetShader.Auto
+                ? baker.targetShader
+                : DetectShaderFromRenderer(renderer);
             DrawShaderSettings(detectedShader);
 
             EditorGUILayout.Space();
@@ -129,7 +128,7 @@ namespace net._32ba.EasyAOBaker.Editor
             return start.root != null ? start.root.gameObject : null;
         }
 
-        private void DrawBasicSettings(EasyAOBaker baker, AOTargetShader detectedShader)
+        private void DrawBasicSettings(EasyAOBaker baker)
         {
             EditorGUILayout.LabelField(L.Tr("section.bake_settings"), EditorStyles.boldLabel);
 
@@ -144,15 +143,55 @@ namespace net._32ba.EasyAOBaker.Editor
 
             DrawField("intensity", "field.intensity");
             DrawField("targetShader", "field.target_shader");
-            if (baker.targetShader == AOTargetShader.Auto)
-            {
-                string detectedText = detectedShader == AOTargetShader.Auto
-                    ? L.Tr("field.target_shader.not_detected")
-                    : L.Format("field.target_shader.detected", detectedShader);
-                using (new EditorGUI.IndentLevelScope())
-                    EditorGUILayout.LabelField(detectedText, EditorStyles.miniLabel);
-            }
+            DrawMaterialSelection(baker);
             DrawField("aoMask", "field.ao_mask");
+        }
+
+        private static void DrawMaterialSelection(EasyAOBaker baker)
+        {
+            var renderer = baker.GetComponent<Renderer>();
+            var mats = renderer != null ? renderer.sharedMaterials : null;
+            if (mats == null || mats.Length == 0) return;
+
+            // フラグ配列をマテリアル数に合わせて同期（不足分は true で追加）
+            var flags = baker.materialBakeFlags;
+            if (flags == null || flags.Length != mats.Length)
+            {
+                var resized = new bool[mats.Length];
+                for (int i = 0; i < mats.Length; i++)
+                    resized[i] = (flags != null && i < flags.Length) ? flags[i] : true;
+                baker.materialBakeFlags = resized;
+                flags = resized;
+            }
+
+            EditorGUILayout.LabelField(L.G("section.materials"), EditorStyles.miniBoldLabel);
+            using (new EditorGUI.IndentLevelScope())
+            {
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var mat = mats[i];
+                    string matName = mat != null ? mat.name : L.Tr("materials.none_slot");
+                    string suffix = "";
+                    if (baker.targetShader == AOTargetShader.Auto && mat != null)
+                    {
+                        var detected = ShaderTypeUtil.DetectFromMaterial(mat);
+                        suffix = detected == AOTargetShader.Auto
+                            ? $"  ({L.Tr("field.target_shader.not_detected")})"
+                            : $"  ({detected})";
+                    }
+
+                    using (new EditorGUI.DisabledScope(mat == null))
+                    {
+                        bool newFlag = EditorGUILayout.ToggleLeft(matName + suffix, flags[i]);
+                        if (newFlag != flags[i])
+                        {
+                            Undo.RecordObject(baker, "Toggle Material Bake Flag");
+                            flags[i] = newFlag;
+                            EditorUtility.SetDirty(baker);
+                        }
+                    }
+                }
+            }
         }
 
         private void DrawAdvancedSettings(EasyAOBaker baker)
