@@ -49,6 +49,10 @@ namespace net._32ba.EasyAOBaker.Editor
 
             EditorGUILayout.Space();
 
+            DrawBakeNowButton(baker);
+
+            EditorGUILayout.Space();
+
             if (Application.isPlaying)
                 EditorGUILayout.HelpBox(L.Tr("msg.play_mode_preserve"), MessageType.Info);
 
@@ -58,6 +62,76 @@ namespace net._32ba.EasyAOBaker.Editor
                 L.Format("msg.target_info",
                     renderer.GetType().Name, renderer.gameObject.name, baker.bakeMode, detectedShader),
                 MessageType.Info);
+        }
+
+        private static void DrawBakeNowButton(EasyAOBaker baker)
+        {
+            using (new EditorGUI.DisabledScope(Application.isPlaying))
+            {
+                if (GUILayout.Button(L.G("button.bake_now"), GUILayout.Height(30)))
+                    ManuallyBake(baker);
+            }
+        }
+
+        private static void ManuallyBake(EasyAOBaker baker)
+        {
+            var avatarRoot = FindAvatarRoot(baker.transform);
+            if (avatarRoot == null)
+            {
+                EditorUtility.DisplayDialog(
+                    L.Tr("dialog.bake.title"),
+                    L.Tr("dialog.no_avatar_root"),
+                    L.Tr("dialog.ok"));
+                return;
+            }
+
+            try
+            {
+                EditorUtility.DisplayProgressBar(
+                    L.Tr("dialog.bake.title"),
+                    L.Tr("progress.baking"), 0.5f);
+
+                var processor = new AOBakeProcessor(avatarRoot, null);
+                processor.Execute(new[] { baker });
+
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+
+                EditorUtility.ClearProgressBar();
+                EditorUtility.DisplayDialog(
+                    L.Tr("dialog.bake.title"),
+                    L.Format("dialog.bake.success", processor.ManualOutputDirectory),
+                    L.Tr("dialog.ok"));
+            }
+            catch (System.Exception e)
+            {
+                EditorUtility.ClearProgressBar();
+                Debug.LogException(e);
+                EditorUtility.DisplayDialog(
+                    L.Tr("dialog.bake.title"),
+                    L.Format("dialog.bake.failed", e.Message),
+                    L.Tr("dialog.ok"));
+            }
+        }
+
+        /// <summary>
+        /// アバタールートを探す。VRC Avatar Descriptorを優先（リフレクションでasmdef依存を回避）、
+        /// 見つからなければ最上位のtransformを返す。
+        /// </summary>
+        private static GameObject FindAvatarRoot(Transform start)
+        {
+            var descriptorType = System.Type.GetType("VRC.SDKBase.VRC_AvatarDescriptor, VRC.SDKBase");
+            if (descriptorType != null)
+            {
+                var current = start;
+                while (current != null)
+                {
+                    if (current.GetComponent(descriptorType) != null)
+                        return current.gameObject;
+                    current = current.parent;
+                }
+            }
+            return start.root != null ? start.root.gameObject : null;
         }
 
         private void DrawBasicSettings(EasyAOBaker baker)

@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using nadena.dev.ndmf;
+using UnityEditor;
 using UnityEngine;
 
 namespace net._32ba.EasyAOBaker.Editor
@@ -9,11 +11,28 @@ namespace net._32ba.EasyAOBaker.Editor
     {
         private readonly GameObject _avatarRoot;
         private readonly BuildContext _buildContext;
+        private string _manualOutputDir;
 
         public AOBakeProcessor(GameObject avatarRoot, BuildContext buildContext)
         {
             _avatarRoot = avatarRoot;
             _buildContext = buildContext;
+        }
+
+        /// <summary>手動ベイク時の出力先。要求時に作成、避けてユニーク化。</summary>
+        public string ManualOutputDirectory
+        {
+            get
+            {
+                if (_manualOutputDir != null) return _manualOutputDir;
+                var stamp = System.DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                var safeName = string.Join("_", _avatarRoot.name.Split(Path.GetInvalidFileNameChars()));
+                var path = $"Assets/EasyAOBakerOutput/{safeName}_{stamp}";
+                Directory.CreateDirectory(path);
+                AssetDatabase.Refresh();
+                _manualOutputDir = path;
+                return path;
+            }
         }
 
         /// <summary>
@@ -388,10 +407,17 @@ namespace net._32ba.EasyAOBaker.Editor
 
         private void ApplyAOToMaterials(MeshData meshData, Texture2D aoTex, EasyAOBaker settings)
         {
+            string baseName = meshData.Renderer.gameObject.name;
+
             if (_buildContext != null)
             {
-                aoTex.name = $"{meshData.Renderer.gameObject.name}_AO";
-                UnityEditor.AssetDatabase.AddObjectToAsset(aoTex, _buildContext.AssetContainer);
+                aoTex.name = $"{baseName}_AO";
+                AssetDatabase.AddObjectToAsset(aoTex, _buildContext.AssetContainer);
+            }
+            else
+            {
+                // Manual mode: AOテクスチャをPNGとして保存し、インポート済みアセットに差し替え
+                aoTex = SaveTextureAsPNG(aoTex, $"{baseName}_AO", ManualOutputDirectory);
             }
 
             if (settings.targetShader == AOTargetShader.VertexColor)
@@ -419,7 +445,13 @@ namespace net._32ba.EasyAOBaker.Editor
 
                 if (_buildContext != null)
                 {
-                    UnityEditor.AssetDatabase.AddObjectToAsset(clonedMat, _buildContext.AssetContainer);
+                    AssetDatabase.AddObjectToAsset(clonedMat, _buildContext.AssetContainer);
+                }
+                else
+                {
+                    var path = AssetDatabase.GenerateUniqueAssetPath(
+                        $"{ManualOutputDirectory}/{clonedMat.name}.mat");
+                    AssetDatabase.CreateAsset(clonedMat, path);
                 }
 
                 bool applied = ShaderAOSlotDetector.TryApplyAO(clonedMat, aoTex, settings);
@@ -439,9 +471,35 @@ namespace net._32ba.EasyAOBaker.Editor
 
             if (anyApplied)
             {
+                if (_buildContext == null)
+                    Undo.RecordObject(meshData.Renderer, "Apply AO Bake");
                 meshData.Renderer.sharedMaterials = newMats;
                 Debug.Log($"[EasyAOBaker] Reassigned materials on '{meshData.Renderer.name}'");
             }
+        }
+
+        /// <summary>
+        /// Texture2DをPNGとして書き出し、インポートしてプロジェクト資産化する。
+        /// AOはリニアなのでsRGBはOFF、mipmap有効。
+        /// </summary>
+        private static Texture2D SaveTextureAsPNG(Texture2D source, string baseName, string outputDir)
+        {
+            string assetPath = AssetDatabase.GenerateUniqueAssetPath($"{outputDir}/{baseName}.png");
+            File.WriteAllBytes(assetPath, source.EncodeToPNG());
+            Object.DestroyImmediate(source);
+            AssetDatabase.ImportAsset(assetPath);
+
+            var importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
+            if (importer != null)
+            {
+                importer.textureType = TextureImporterType.Default;
+                importer.sRGBTexture = false;
+                importer.alphaIsTransparency = false;
+                importer.mipmapEnabled = true;
+                importer.SaveAndReimport();
+            }
+
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
         }
 
         private static void CleanupOccluderScene(List<GameObject> occluderObjects)

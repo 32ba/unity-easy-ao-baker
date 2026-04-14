@@ -197,6 +197,32 @@ namespace net._32ba.EasyAOBaker.Editor
                 "Occlusion強度倍率。",
                 "Occlusion强度倍率。",
                 "Occlusion 강도 배율."),
+
+            // Manual bake
+            ["button.bake_now"] = ("Bake AO Now", "今すぐAOをベイク", "立即烘焙AO", "지금 AO 베이크"),
+            ["button.bake_now.tooltip"] = (
+                "Run the bake immediately without waiting for NDMF build. Outputs are saved under Assets/EasyAOBakerOutput/.",
+                "NDMFビルドを待たずに即座にベイクを実行。結果は Assets/EasyAOBakerOutput/ 配下に保存されます。",
+                "无需等待NDMF构建，立即执行烘焙。结果保存在 Assets/EasyAOBakerOutput/ 下。",
+                "NDMF 빌드를 기다리지 않고 즉시 베이크를 실행. 결과는 Assets/EasyAOBakerOutput/ 아래에 저장됩니다."),
+            ["dialog.ok"] = ("OK", "OK", "确定", "확인"),
+            ["dialog.bake.title"] = ("Bake AO", "AOベイク", "烘焙AO", "AO 베이크"),
+            ["dialog.no_avatar_root"] = (
+                "Could not find the avatar root. Place this component under a VRC Avatar or run from a top-level GameObject.",
+                "アバタールートが見つかりませんでした。VRChatアバター配下か、トップレベルのGameObject配下にコンポーネントを配置してください。",
+                "找不到头像根节点。请将此组件放在VRChat头像下或顶级GameObject下。",
+                "아바타 루트를 찾을 수 없습니다. 이 컴포넌트를 VRChat 아바타 아래 또는 최상위 GameObject 아래에 배치해 주세요."),
+            ["dialog.bake.success"] = (
+                "AO bake completed.\nOutput: {0}",
+                "AOベイクが完了しました。\n出力先: {0}",
+                "AO烘焙完成。\n输出位置: {0}",
+                "AO 베이크 완료.\n출력 위치: {0}"),
+            ["dialog.bake.failed"] = (
+                "Bake failed: {0}",
+                "ベイクに失敗しました: {0}",
+                "烘焙失败: {0}",
+                "베이크 실패: {0}"),
+            ["progress.baking"] = ("Baking AO...", "AOをベイク中...", "正在烘焙AO...", "AO 베이크 중..."),
         };
     }
 }
