@@ -1,16 +1,18 @@
 using System;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
 namespace net._32ba.AOBaker
 {
     /// <summary>
     /// AOをベイクしたいRendererがあるGameObjectに追加する。
-    /// 深度マップはアバター全体から生成されるため、他メッシュからの遮蔽も反映される。
+    /// アバター全体のジオメトリを考慮して、他メッシュからの遮蔽も反映される。
     /// </summary>
     [AddComponentMenu("AO Baker/AO Baker")]
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Renderer))]
-    public class SSAOBaker : MonoBehaviour, VRC.SDKBase.IEditorOnly
+    [MovedFrom(true, "net._32ba.AOBaker", null, "SSAOBaker")]
+    public class AOBaker : MonoBehaviour, VRC.SDKBase.IEditorOnly
     {
         public AOBakeMode bakeMode = AOBakeMode.RayCast;
 

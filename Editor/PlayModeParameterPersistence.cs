@@ -28,12 +28,12 @@ namespace net._32ba.AOBaker.Editor
 
         public static void SaveAllBakerParams()
         {
-            var bakers = Object.FindObjectsByType<SSAOBaker>(FindObjectsSortMode.None);
+            var bakers = Object.FindObjectsByType<AOBaker>(FindObjectsSortMode.None);
             foreach (var baker in bakers)
                 SaveBakerParams(baker);
         }
 
-        private static void SaveBakerParams(SSAOBaker baker)
+        private static void SaveBakerParams(AOBaker baker)
         {
             var id = GlobalObjectId.GetGlobalObjectIdSlow(baker);
             string key = SessionKey + id.ToString();
@@ -42,12 +42,12 @@ namespace net._32ba.AOBaker.Editor
 
         private static void RestoreAllBakerParams()
         {
-            var bakers = Object.FindObjectsByType<SSAOBaker>(FindObjectsSortMode.None);
+            var bakers = Object.FindObjectsByType<AOBaker>(FindObjectsSortMode.None);
             foreach (var baker in bakers)
                 RestoreBakerParams(baker);
         }
 
-        private static void RestoreBakerParams(SSAOBaker baker)
+        private static void RestoreBakerParams(AOBaker baker)
         {
             var id = GlobalObjectId.GetGlobalObjectIdSlow(baker);
             string key = SessionKey + id.ToString();

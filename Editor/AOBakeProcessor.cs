@@ -5,12 +5,12 @@ using UnityEngine;
 
 namespace net._32ba.AOBaker.Editor
 {
-    public class SSAOBakeProcessor
+    public class AOBakeProcessor
     {
         private readonly GameObject _avatarRoot;
         private readonly BuildContext _buildContext;
 
-        public SSAOBakeProcessor(GameObject avatarRoot, BuildContext buildContext)
+        public AOBakeProcessor(GameObject avatarRoot, BuildContext buildContext)
         {
             _avatarRoot = avatarRoot;
             _buildContext = buildContext;
@@ -18,10 +18,10 @@ namespace net._32ba.AOBaker.Editor
 
         /// <summary>
         /// NDMFパイプラインからの実行エントリポイント。
-        /// 複数のSSAOBakerコンポーネントを処理する。
+        /// 複数のAOBakerコンポーネントを処理する。
         /// 深度マップはアバター全体から1回だけ生成し共有する。
         /// </summary>
-        public void Execute(SSAOBaker[] bakers)
+        public void Execute(AOBaker[] bakers)
         {
             var allRenderers = CollectAllRenderers();
             if (allRenderers.Count == 0)
@@ -53,7 +53,7 @@ namespace net._32ba.AOBaker.Editor
             }
         }
 
-        private void ExecuteSSAO(SSAOBaker[] bakers, List<MeshData> allMeshData,
+        private void ExecuteSSAO(AOBaker[] bakers, List<MeshData> allMeshData,
             UVSpaceRasterizer rasterizer, AOTexturePostFilter postFilter)
         {
             var occluderObjects = BuildOccluderScene(allMeshData, bakers[0]);
@@ -87,7 +87,7 @@ namespace net._32ba.AOBaker.Editor
             }
         }
 
-        private void ExecuteRayCast(SSAOBaker[] bakers, List<MeshData> allMeshData,
+        private void ExecuteRayCast(AOBaker[] bakers, List<MeshData> allMeshData,
             UVSpaceRasterizer rasterizer, AOTexturePostFilter postFilter)
         {
             var meshes = allMeshData.Select(d => d.Mesh).ToList();
@@ -101,7 +101,7 @@ namespace net._32ba.AOBaker.Editor
                     (meshData, res) => ComputeRayCastAO(meshData, baker, res, bvhData, rasterizer, postFilter));
         }
 
-        private void BakeForBaker(SSAOBaker baker, UVSpaceRasterizer rasterizer, AOTexturePostFilter postFilter,
+        private void BakeForBaker(AOBaker baker, UVSpaceRasterizer rasterizer, AOTexturePostFilter postFilter,
             System.Func<MeshData, int, Texture2D> bakeFunc)
         {
             var renderer = baker.GetComponent<Renderer>();
@@ -184,7 +184,7 @@ namespace net._32ba.AOBaker.Editor
             return result;
         }
 
-        private List<GameObject> BuildOccluderScene(List<MeshData> meshDataList, SSAOBaker settings)
+        private List<GameObject> BuildOccluderScene(List<MeshData> meshDataList, AOBaker settings)
         {
             var occluders = new List<GameObject>();
             var unlitMat = new Material(Shader.Find("Hidden/AOBaker/DepthOnly"));
@@ -250,7 +250,7 @@ namespace net._32ba.AOBaker.Editor
 
         private Texture2D BakeAOForMesh(
             MeshData meshData,
-            SSAOBaker settings,
+            AOBaker settings,
             int resolution,
             int depthTexSize,
             DepthMapRenderer.DepthRenderResult depthResult,
@@ -263,7 +263,7 @@ namespace net._32ba.AOBaker.Editor
 
         private Texture2D ComputeRayCastAO(
             MeshData meshData,
-            SSAOBaker settings,
+            AOBaker settings,
             int resolution,
             BVHBuilder.BVHData bvhData,
             UVSpaceRasterizer rasterizer,
@@ -307,7 +307,7 @@ namespace net._32ba.AOBaker.Editor
 
         private Texture2D BakeWithCompute(
             MeshData meshData,
-            SSAOBaker settings,
+            AOBaker settings,
             int resolution,
             UVSpaceRasterizer rasterizer,
             AOTexturePostFilter postFilter,
@@ -340,7 +340,7 @@ namespace net._32ba.AOBaker.Editor
         private RenderTexture ComputeSSAO(
             UVSpaceRasterizer.RasterizeResult rasterResult,
             DepthMapRenderer.DepthRenderResult depthResult,
-            SSAOBaker settings,
+            AOBaker settings,
             int resolution,
             int depthTexSize)
         {
@@ -386,7 +386,7 @@ namespace net._32ba.AOBaker.Editor
             return aoRT;
         }
 
-        private void ApplyAOToMaterials(MeshData meshData, Texture2D aoTex, SSAOBaker settings)
+        private void ApplyAOToMaterials(MeshData meshData, Texture2D aoTex, AOBaker settings)
         {
             if (_buildContext != null)
             {

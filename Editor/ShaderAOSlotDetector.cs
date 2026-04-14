@@ -5,7 +5,7 @@ namespace net._32ba.AOBaker.Editor
 {
     public static class ShaderAOSlotDetector
     {
-        public static bool TryApplyAO(Material mat, Texture2D aoTex, SSAOBaker baker)
+        public static bool TryApplyAO(Material mat, Texture2D aoTex, AOBaker baker)
         {
             if (baker.targetShader == AOTargetShader.VertexColor)
                 return false;
