@@ -20,10 +20,9 @@ namespace net._32ba.EasyAOBaker.Editor
                 .AfterPlugin("nadena.dev.modular-avatar")
                 .Run("Bake AO Maps", ctx =>
                 {
-                    // textureOnlyMode は手動ベイク専用なので NDMF ビルドではスキップ
                     var bakers = ctx.AvatarRootObject
                         .GetComponentsInChildren<EasyAOBaker>(false)
-                        .Where(b => b.gameObject.activeInHierarchy && !b.textureOnlyMode)
+                        .Where(b => b.gameObject.activeInHierarchy)
                         .ToArray();
 
                     if (bakers.Length == 0) return;

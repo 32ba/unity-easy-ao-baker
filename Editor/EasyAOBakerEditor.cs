@@ -32,14 +32,12 @@ namespace net._32ba.EasyAOBaker.Editor
 
             EditorGUILayout.Space();
 
-            if (!baker.textureOnlyMode)
-            {
-                var detectedShader = baker.targetShader != AOTargetShader.Auto
-                    ? baker.targetShader
-                    : DetectShaderFromRenderer(renderer);
-                DrawShaderSettings(detectedShader);
-                EditorGUILayout.Space();
-            }
+            var detectedShader = baker.targetShader != AOTargetShader.Auto
+                ? baker.targetShader
+                : DetectShaderFromRenderer(renderer);
+            DrawShaderSettings(detectedShader);
+
+            EditorGUILayout.Space();
 
             DrawAdvancedSettings(baker);
 
@@ -140,12 +138,8 @@ namespace net._32ba.EasyAOBaker.Editor
             }
 
             DrawField("intensity", "field.intensity");
-            DrawField("textureOnlyMode", "field.texture_only");
-            if (!baker.textureOnlyMode)
-            {
-                DrawField("targetShader", "field.target_shader");
-                DrawMaterialSelection(baker);
-            }
+            DrawField("targetShader", "field.target_shader");
+            DrawMaterialSelection(baker);
             DrawField("aoMask", "field.ao_mask");
         }
 
@@ -234,6 +228,7 @@ namespace net._32ba.EasyAOBaker.Editor
             EditorGUI.indentLevel--;
 
             EditorGUILayout.Space(4);
+            DrawField("textureOnlyMode", "field.texture_only");
             DrawBakeNowButton(baker);
         }
 

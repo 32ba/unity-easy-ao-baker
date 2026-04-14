@@ -420,8 +420,9 @@ namespace net._32ba.EasyAOBaker.Editor
                 aoTex = SaveTextureAsPNG(aoTex, $"{baseName}_AO", ManualOutputDirectory);
             }
 
-            // テクスチャのみ生成モード: マテリアル・頂点カラーへの書き込みはスキップ
-            if (settings.textureOnlyMode) return;
+            // Texture Only は手動ベイクのオプション: マテリアル・頂点カラーへの書き込みをスキップ
+            // NDMF ビルド（_buildContext != null）では常に適用するため無視
+            if (_buildContext == null && settings.textureOnlyMode) return;
 
             if (settings.targetShader == AOTargetShader.VertexColor)
             {

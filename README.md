@@ -39,21 +39,19 @@ https://github.com/32ba/easy-ao-baker.git
 ### 基本フロー
 
 1. AOを焼きたいメッシュのGameObject（Rendererがあるオブジェクト）に **EasyAOBaker > EasyAOBaker** コンポーネントを追加
-2. 必要に応じて設定を調整
-3. Advanced Settings の **「Bake AO Now」** ボタンをクリック → PNG が `Assets/EasyAOBakerOutput/<アバター名>_<日時>/<Renderer名>_AO.png` に生成される
-4. 生成された PNG をマテリアルの AO スロット（lilToon なら Shadow Border Mask など）に手動で割り当てる
+2. 必要に応じて設定を調整（Target Shader は Auto でほぼ自動判別）
+3. アバターアップロード時、NDMFビルドパイプラインで自動ベイク → 対象シェーダーの AO スロットへ書き込み（非破壊）
 
-### 動作モード
+### 手動ベイク
 
-- **Texture Only モード**（デフォルト、ON）:
-  - 手動ベイクボタンで PNG を生成するだけ、マテリアルは変更しない
-  - NDMFビルド時はスキップ（アバターには影響しない）
-  - 生成された PNG を自分のタイミングでマテリアルに適用できる
+NDMFビルドを待たずに、Advanced Settings の **「Bake AO Now」** ボタンで即座にベイク可能。出力は `Assets/EasyAOBakerOutput/<アバター名>_<日時>/` 配下。
 
-- **Texture Only モード OFF**（マテリアル自動適用）:
-  - 手動ベイク: PNG + `_AO.mat` を生成し、Renderer の sharedMaterials を自動差し替え
-  - NDMFビルド: アバタービルド時に自動ベイク → シェーダーの AO スロットへ直接書き込み（非破壊）
-  - Target Shader / Materials to bake でシェーダーや適用先マテリアルを選択可能
+ボタンのすぐ上にある **「Texture Only (manual)」** トグル（デフォルト ON）で動作を切り替えられます:
+
+- **ON**（デフォルト）: PNG のみ出力、マテリアルは変更しない。プレビューや単発のテクスチャ書き出し向け。生成された PNG を手動でマテリアルに割り当てる
+- **OFF**: PNG + クローンした `_AO.mat` を出力し、Renderer の sharedMaterials を自動差し替え
+
+NDMFビルドはこのトグルにかかわらず常にマテリアルに適用します（手動ベイク専用のオプションのため）。
 
 複数メッシュにAOを焼く場合は、それぞれのGameObjectにコンポーネントを追加してください。アバター全体のジオメトリを考慮するため、他メッシュからの遮蔽（例: 髪→顔）も反映されます。
 
