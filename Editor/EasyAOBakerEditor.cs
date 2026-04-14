@@ -47,10 +47,6 @@ namespace net._32ba.EasyAOBaker.Editor
             if (Application.isPlaying && changed)
                 PlayModeParameterPersistence.SaveAllBakerParams();
 
-            EditorGUILayout.Space();
-
-            DrawBakeNowButton(baker);
-
             if (Application.isPlaying)
             {
                 EditorGUILayout.Space();
@@ -230,6 +226,9 @@ namespace net._32ba.EasyAOBaker.Editor
             DrawField("blurRadius", "field.blur_radius");
 
             EditorGUI.indentLevel--;
+
+            EditorGUILayout.Space(4);
+            DrawBakeNowButton(baker);
         }
 
         private void DrawField(string propName, string labelKey)
