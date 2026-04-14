@@ -59,6 +59,16 @@ namespace net._32ba.EasyAOBaker.Editor
                 "AO全体の強度倍率（pow指数）。",
                 "AO整体强度倍率（pow指数）。",
                 "AO 전체 강도 배율 (pow 지수)."),
+            ["field.texture_only"] = (
+                "Texture Only",
+                "テクスチャのみ生成",
+                "仅生成纹理",
+                "텍스처만 생성"),
+            ["field.texture_only.tooltip"] = (
+                "When enabled, only generates the AO texture without modifying materials. Drag the saved PNG into your material manually.",
+                "ON のとき、AOテクスチャを生成するだけでマテリアルは変更しない。生成された PNG を手動でマテリアルに割り当ててください。",
+                "启用时，仅生成AO纹理而不修改材质。请手动将生成的PNG分配到材质。",
+                "활성화 시 AO 텍스처만 생성하고 머티리얼은 수정하지 않습니다. 생성된 PNG를 수동으로 머티리얼에 할당하세요."),
             ["field.target_shader"] = ("Target Shader", "対象シェーダー", "目标着色器", "대상 셰이더"),
             ["field.target_shader.tooltip"] = (
                 "Shader slot to apply AO to. Auto detects from material.",

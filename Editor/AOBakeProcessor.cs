@@ -420,6 +420,9 @@ namespace net._32ba.EasyAOBaker.Editor
                 aoTex = SaveTextureAsPNG(aoTex, $"{baseName}_AO", ManualOutputDirectory);
             }
 
+            // テクスチャのみ生成モード: マテリアル・頂点カラーへの書き込みはスキップ
+            if (settings.textureOnlyMode) return;
+
             if (settings.targetShader == AOTargetShader.VertexColor)
             {
                 Debug.Log($"[EasyAOBaker] Applying AO to vertex colors: {meshData.Renderer.name}");

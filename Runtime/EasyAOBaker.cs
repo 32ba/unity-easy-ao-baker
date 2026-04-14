@@ -52,6 +52,11 @@ namespace net._32ba.EasyAOBaker
         public Texture2D aoMask;
 
         [Header("Output")]
+        /// <summary>
+        /// true のときは AO テクスチャを生成するだけでマテリアルは変更しない。デフォルト。
+        /// </summary>
+        public bool textureOnlyMode = true;
+
         public AOTargetShader targetShader = AOTargetShader.Auto;
 
         /// <summary>
