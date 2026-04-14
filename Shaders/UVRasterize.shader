@@ -71,8 +71,9 @@ Shader "Hidden/AOBaker/UVRasterize"
                 float cross = edge0.x * edge1.y - edge0.y * edge1.x;
                 float sign = cross > 0 ? 1.0 : -1.0;
 
-                // テクセルサイズの2倍分膨張（十分なマージン）
-                float expandAmount = _TexelSize * 2.0;
+                // 膨張なし: 三角形の重複による線アーティファクトを防止
+                // サブピクセル三角形のギャップはJFAパディングが処理する
+                float expandAmount = 0;
 
                 g2f o;
 
