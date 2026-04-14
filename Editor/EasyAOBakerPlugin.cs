@@ -2,14 +2,14 @@ using System.Linq;
 using nadena.dev.ndmf;
 using UnityEngine;
 
-[assembly: ExportsPlugin(typeof(net._32ba.AOBaker.Editor.AOBakerPlugin))]
+[assembly: ExportsPlugin(typeof(net._32ba.EasyAOBaker.Editor.EasyAOBakerPlugin))]
 
-namespace net._32ba.AOBaker.Editor
+namespace net._32ba.EasyAOBaker.Editor
 {
-    public class AOBakerPlugin : Plugin<AOBakerPlugin>
+    public class EasyAOBakerPlugin : Plugin<EasyAOBakerPlugin>
     {
-        public override string QualifiedName => "net.32ba.ao-baker";
-        public override string DisplayName => "AO Baker";
+        public override string QualifiedName => "net.32ba.easy-ao-baker";
+        public override string DisplayName => "EasyAOBaker";
 
         protected override void Configure()
         {
@@ -21,7 +21,7 @@ namespace net._32ba.AOBaker.Editor
                 .Run("Bake AO Maps", ctx =>
                 {
                     var bakers = ctx.AvatarRootObject
-                        .GetComponentsInChildren<AOBaker>(false)
+                        .GetComponentsInChildren<EasyAOBaker>(false)
                         .Where(b => b.gameObject.activeInHierarchy)
                         .ToArray();
 
@@ -30,10 +30,10 @@ namespace net._32ba.AOBaker.Editor
                     var processor = new AOBakeProcessor(ctx.AvatarRootObject, ctx);
                     processor.Execute(bakers);
                 })
-                .Then.Run("Cleanup AO Baker Components", ctx =>
+                .Then.Run("Cleanup EasyAOBaker Components", ctx =>
                 {
                     foreach (var comp in ctx.AvatarRootObject
-                        .GetComponentsInChildren<AOBaker>(true))
+                        .GetComponentsInChildren<EasyAOBaker>(true))
                         Object.DestroyImmediate(comp);
 
                     foreach (var comp in ctx.AvatarRootObject

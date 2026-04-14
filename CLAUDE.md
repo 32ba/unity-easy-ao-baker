@@ -1,4 +1,4 @@
-# AO Baker - CLAUDE.md
+# EasyAOBaker - CLAUDE.md
 
 ## プロジェクト概要
 
@@ -14,9 +14,9 @@ VRChatアバター向けAOマップベイカー。NDMFプラグインとして `
 ## ディレクトリ構造
 
 ```
-ao-baker/
+easy-ao-baker/
 ├── Editor/                              # Editor専用スクリプト
-│   ├── AOBakerPlugin.cs                 # NDMFプラグイン定義
+│   ├── EasyAOBakerPlugin.cs                 # NDMFプラグイン定義
 │   ├── AOBakeProcessor.cs               # ベイク処理統括（SSAO + RayCast）
 │   ├── BVHBuilder.cs                    # RayCastモード用BVH構築
 │   ├── UVSpaceRasterizer.cs             # UV→ワールド座標マッピング
@@ -25,13 +25,13 @@ ao-baker/
 │   ├── ShaderAOSlotDetector.cs          # シェーダー別AO適用ロジック
 │   ├── ShaderTypeUtil.cs                # シェーダー種別検出
 │   ├── AOTexturePostFilter.cs           # ガウシアンブラー + JFAパディング
-│   ├── AOBakerAssetLoader.cs            # GUIDベースのアセットロード
+│   ├── EasyAOBakerAssetLoader.cs            # GUIDベースのアセットロード
 │   ├── PlayModeParameterPersistence.cs  # Play Mode変更の永続化
-│   ├── AOBakerEditor.cs                 # カスタムInspector
-│   ├── AOBakerLocalization.cs           # 多言語対応API（L.Tr / L.G）
-│   └── AOBakerTranslations.cs           # 翻訳データ（en/ja/zh/ko）
+│   ├── EasyAOBakerEditor.cs                 # カスタムInspector
+│   ├── EasyAOBakerLocalization.cs           # 多言語対応API（L.Tr / L.G）
+│   └── EasyAOBakerTranslations.cs           # 翻訳データ（en/ja/zh/ko）
 ├── Runtime/                             # ランタイムコンポーネント
-│   ├── AOBaker.cs                       # メインコンポーネント（ユーザー設定）
+│   ├── EasyAOBaker.cs                       # メインコンポーネント（ユーザー設定）
 │   └── ExcludeFromAOBake.cs             # オクルーダー除外マーカー
 ├── Shaders/                             # GPU処理
 │   ├── UVRasterize.shader               # UV空間ラスタライズ（保守的、膨張0）
@@ -46,14 +46,14 @@ ao-baker/
 
 ## コーディング規約
 
-- **Namespace**: `net._32ba.AOBaker` (Runtime), `net._32ba.AOBaker.Editor` (Editor)
+- **Namespace**: `net._32ba.EasyAOBaker` (Runtime), `net._32ba.EasyAOBaker.Editor` (Editor)
 - **命名規則**: PascalCase (クラス/メソッド), `_camelCase` (privateフィールド), camelCase (ローカル変数)
 - **Editor/Runtime分離**: Assembly Definitionで強制
 
 ## NDMFパイプライン統合
 
 - `BuildPhase.Optimizing` で `AfterPlugin("com.anatawa12.avatar-optimizer")` として実行
-- 処理後に自身のコンポーネント (AOBaker, ExcludeFromAOBake) をクリーンアップ
+- 処理後に自身のコンポーネント (EasyAOBaker, ExcludeFromAOBake) をクリーンアップ
 
 ## ベイクモード
 
@@ -88,9 +88,9 @@ ao-baker/
 ## 多言語対応
 
 - 対応言語: English / 日本語 / 中文 / 한국어
-- 翻訳データは `Editor/AOBakerTranslations.cs` のキー → `(en, ja, zh, ko)` タプル辞書
+- 翻訳データは `Editor/EasyAOBakerTranslations.cs` のキー → `(en, ja, zh, ko)` タプル辞書
 - 命名規則 `"key.tooltip"` で tooltip を自動紐付け
-- 言語選択は `EditorPrefs` キー `net.32ba.AOBaker.Lang` に永続化、初回はシステム言語から自動判定
+- 言語選択は `EditorPrefs` キー `net.32ba.EasyAOBaker.Lang` に永続化、初回はシステム言語から自動判定
 - API: `L.Tr(key)`, `L.G(labelKey)`（自動tooltip紐付け）, `L.G(labelKey, tooltipKey)`（明示）, `L.Format(key, args)`
 
 ## Inspector構成
@@ -107,4 +107,4 @@ ao-baker/
 - GitHub Actions `release.yml` (workflow_dispatch)
 - package.jsonのversionからタグ・zip・unitypackage生成
 - VPMリポジトリ (vpm.32ba.net) 自動更新
-- リポジトリ変数 `PACKAGE_NAME` = `net.32ba.ao-baker` の設定が必要
+- リポジトリ変数 `PACKAGE_NAME` = `net.32ba.easy-ao-baker` の設定が必要

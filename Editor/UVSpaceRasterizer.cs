@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace net._32ba.AOBaker.Editor
+namespace net._32ba.EasyAOBaker.Editor
 {
     public class UVSpaceRasterizer
     {
@@ -9,7 +9,7 @@ namespace net._32ba.AOBaker.Editor
 
         public UVSpaceRasterizer()
         {
-            var shader = Shader.Find("Hidden/AOBaker/UVRasterize");
+            var shader = Shader.Find("Hidden/EasyAOBaker/UVRasterize");
             _uvRasterMaterial = new Material(shader);
         }
 
@@ -41,7 +41,7 @@ namespace net._32ba.AOBaker.Editor
             // 保守的ラスタライズ用のテクセルサイズを設定
             _uvRasterMaterial.SetFloat("_TexelSize", 1.0f / resolution);
 
-            var cmd = new CommandBuffer { name = "AOBaker_UVRasterize" };
+            var cmd = new CommandBuffer { name = "EasyAOBaker_UVRasterize" };
 
             cmd.SetRenderTarget(
                 new RenderTargetIdentifier[] { posRT, nrmRT },

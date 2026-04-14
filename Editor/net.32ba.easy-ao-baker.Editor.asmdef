@@ -1,8 +1,8 @@
 {
-  "name": "net.32ba.ao-baker.Editor",
-  "rootNamespace": "net._32ba.AOBaker.Editor",
+  "name": "net.32ba.easy-ao-baker.Editor",
+  "rootNamespace": "net._32ba.EasyAOBaker.Editor",
   "references": [
-    "net.32ba.ao-baker.Runtime",
+    "net.32ba.easy-ao-baker.Runtime",
     "nadena.dev.ndmf"
   ],
   "includePlatforms": [

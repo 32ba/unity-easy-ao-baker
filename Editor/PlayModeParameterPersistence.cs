@@ -1,12 +1,12 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace net._32ba.AOBaker.Editor
+namespace net._32ba.EasyAOBaker.Editor
 {
     [InitializeOnLoad]
     public static class PlayModeParameterPersistence
     {
-        private const string SessionKey = "AOBaker_PlayModeParams_";
+        private const string SessionKey = "EasyAOBaker_PlayModeParams_";
 
         static PlayModeParameterPersistence()
         {
@@ -28,12 +28,12 @@ namespace net._32ba.AOBaker.Editor
 
         public static void SaveAllBakerParams()
         {
-            var bakers = Object.FindObjectsByType<AOBaker>(FindObjectsSortMode.None);
+            var bakers = Object.FindObjectsByType<EasyAOBaker>(FindObjectsSortMode.None);
             foreach (var baker in bakers)
                 SaveBakerParams(baker);
         }
 
-        private static void SaveBakerParams(AOBaker baker)
+        private static void SaveBakerParams(EasyAOBaker baker)
         {
             var id = GlobalObjectId.GetGlobalObjectIdSlow(baker);
             string key = SessionKey + id.ToString();
@@ -42,12 +42,12 @@ namespace net._32ba.AOBaker.Editor
 
         private static void RestoreAllBakerParams()
         {
-            var bakers = Object.FindObjectsByType<AOBaker>(FindObjectsSortMode.None);
+            var bakers = Object.FindObjectsByType<EasyAOBaker>(FindObjectsSortMode.None);
             foreach (var baker in bakers)
                 RestoreBakerParams(baker);
         }
 
-        private static void RestoreBakerParams(AOBaker baker)
+        private static void RestoreBakerParams(EasyAOBaker baker)
         {
             var id = GlobalObjectId.GetGlobalObjectIdSlow(baker);
             string key = SessionKey + id.ToString();
@@ -55,12 +55,12 @@ namespace net._32ba.AOBaker.Editor
             string json = SessionState.GetString(key, "");
             if (string.IsNullOrEmpty(json)) return;
 
-            Undo.RecordObject(baker, "Restore AO Baker Play Mode Parameters");
+            Undo.RecordObject(baker, "Restore EasyAOBaker Play Mode Parameters");
             JsonUtility.FromJsonOverwrite(json, baker);
             EditorUtility.SetDirty(baker);
 
             SessionState.EraseString(key);
-            Debug.Log($"[AO Baker] Play Mode parameters restored for '{baker.gameObject.name}'.");
+            Debug.Log($"[EasyAOBaker] Play Mode parameters restored for '{baker.gameObject.name}'.");
         }
     }
 }

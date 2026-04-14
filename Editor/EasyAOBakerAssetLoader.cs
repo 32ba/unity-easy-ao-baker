@@ -1,9 +1,9 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace net._32ba.AOBaker.Editor
+namespace net._32ba.EasyAOBaker.Editor
 {
-    public static class AOBakerAssetLoader
+    public static class EasyAOBakerAssetLoader
     {
         public static ComputeShader LoadComputeShader(string name)
         {
@@ -11,10 +11,10 @@ namespace net._32ba.AOBaker.Editor
             foreach (var guid in guids)
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);
-                if (path.Contains("ao-baker") || path.Contains("AOBaker"))
+                if (path.Contains("easy-ao-baker") || path.Contains("EasyAOBaker"))
                     return AssetDatabase.LoadAssetAtPath<ComputeShader>(path);
             }
-            Debug.LogError($"[AO Baker] ComputeShader '{name}' not found.");
+            Debug.LogError($"[EasyAOBaker] ComputeShader '{name}' not found.");
             return null;
         }
     }

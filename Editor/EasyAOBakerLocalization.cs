@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace net._32ba.AOBaker.Editor
+namespace net._32ba.EasyAOBaker.Editor
 {
     /// <summary>
     /// Inspector UI の多言語対応。翻訳データは Translations.Entries から引く。
@@ -11,7 +11,7 @@ namespace net._32ba.AOBaker.Editor
     {
         public enum Lang { English, 日本語, 中文, 한국어 }
 
-        private const string PrefKey = "net.32ba.AOBaker.Lang";
+        private const string PrefKey = "net.32ba.EasyAOBaker.Lang";
         private static Lang? _cached;
 
         public static Lang Current

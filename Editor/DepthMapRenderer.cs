@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace net._32ba.AOBaker.Editor
+namespace net._32ba.EasyAOBaker.Editor
 {
     public class DepthMapRenderer
     {
@@ -20,7 +20,7 @@ namespace net._32ba.AOBaker.Editor
         {
             _depthTexSize = depthTexSize;
             _captureDistance = captureDistance;
-            _depthShader = Shader.Find("Hidden/AOBaker/DepthOnly");
+            _depthShader = Shader.Find("Hidden/EasyAOBaker/DepthOnly");
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace net._32ba.AOBaker.Editor
 
         private Camera CreateTempCamera(Bounds sceneBounds)
         {
-            var go = new GameObject("AOBaker_TempCamera")
+            var go = new GameObject("EasyAOBaker_TempCamera")
             {
                 hideFlags = HideFlags.HideAndDontSave
             };

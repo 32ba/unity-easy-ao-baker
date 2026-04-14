@@ -1,18 +1,16 @@
 using System;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
-namespace net._32ba.AOBaker
+namespace net._32ba.EasyAOBaker
 {
     /// <summary>
     /// AOをベイクしたいRendererがあるGameObjectに追加する。
     /// アバター全体のジオメトリを考慮して、他メッシュからの遮蔽も反映される。
     /// </summary>
-    [AddComponentMenu("AO Baker/AO Baker")]
+    [AddComponentMenu("EasyAOBaker/EasyAOBaker")]
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Renderer))]
-    [MovedFrom(true, "net._32ba.AOBaker", null, "SSAOBaker")]
-    public class AOBaker : MonoBehaviour, VRC.SDKBase.IEditorOnly
+    public class EasyAOBaker : MonoBehaviour, VRC.SDKBase.IEditorOnly
     {
         public AOBakeMode bakeMode = AOBakeMode.RayCast;
 

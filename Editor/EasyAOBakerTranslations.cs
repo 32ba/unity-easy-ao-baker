@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace net._32ba.AOBaker.Editor
+namespace net._32ba.EasyAOBaker.Editor
 {
     /// <summary>
     /// 翻訳データ。キー → (en, ja, zh, ko) のタプル。

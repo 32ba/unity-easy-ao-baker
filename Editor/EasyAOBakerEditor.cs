@@ -1,10 +1,10 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace net._32ba.AOBaker.Editor
+namespace net._32ba.EasyAOBaker.Editor
 {
-    [CustomEditor(typeof(AOBaker))]
-    public class AOBakerEditor : UnityEditor.Editor
+    [CustomEditor(typeof(EasyAOBaker))]
+    public class EasyAOBakerEditor : UnityEditor.Editor
     {
         private static readonly string[] ResolutionLabels = { "256", "512", "1024", "2048", "4096" };
         private static readonly int[] ResolutionValues = { 256, 512, 1024, 2048, 4096 };
@@ -14,7 +14,7 @@ namespace net._32ba.AOBaker.Editor
 
         public override void OnInspectorGUI()
         {
-            var baker = (AOBaker)target;
+            var baker = (EasyAOBaker)target;
             serializedObject.Update();
 
             L.DrawLanguageSwitcher();
@@ -60,7 +60,7 @@ namespace net._32ba.AOBaker.Editor
                 MessageType.Info);
         }
 
-        private void DrawBasicSettings(AOBaker baker)
+        private void DrawBasicSettings(EasyAOBaker baker)
         {
             EditorGUILayout.LabelField(L.Tr("section.bake_settings"), EditorStyles.boldLabel);
 
@@ -78,7 +78,7 @@ namespace net._32ba.AOBaker.Editor
             DrawField("aoMask", "field.ao_mask");
         }
 
-        private void DrawAdvancedSettings(AOBaker baker)
+        private void DrawAdvancedSettings(EasyAOBaker baker)
         {
             _advancedFoldout = EditorGUILayout.Foldout(_advancedFoldout, L.Tr("section.advanced"), true);
             if (!_advancedFoldout) return;

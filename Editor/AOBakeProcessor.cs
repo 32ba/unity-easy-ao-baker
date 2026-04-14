@@ -3,7 +3,7 @@ using System.Linq;
 using nadena.dev.ndmf;
 using UnityEngine;
 
-namespace net._32ba.AOBaker.Editor
+namespace net._32ba.EasyAOBaker.Editor
 {
     public class AOBakeProcessor
     {
@@ -18,15 +18,15 @@ namespace net._32ba.AOBaker.Editor
 
         /// <summary>
         /// NDMFパイプラインからの実行エントリポイント。
-        /// 複数のAOBakerコンポーネントを処理する。
+        /// 複数のEasyAOBakerコンポーネントを処理する。
         /// 深度マップはアバター全体から1回だけ生成し共有する。
         /// </summary>
-        public void Execute(AOBaker[] bakers)
+        public void Execute(EasyAOBaker[] bakers)
         {
             var allRenderers = CollectAllRenderers();
             if (allRenderers.Count == 0)
             {
-                Debug.LogWarning("[AO Baker] No renderers found in avatar.");
+                Debug.LogWarning("[EasyAOBaker] No renderers found in avatar.");
                 return;
             }
 
@@ -53,7 +53,7 @@ namespace net._32ba.AOBaker.Editor
             }
         }
 
-        private void ExecuteSSAO(AOBaker[] bakers, List<MeshData> allMeshData,
+        private void ExecuteSSAO(EasyAOBaker[] bakers, List<MeshData> allMeshData,
             UVSpaceRasterizer rasterizer, AOTexturePostFilter postFilter)
         {
             var occluderObjects = BuildOccluderScene(allMeshData, bakers[0]);
@@ -87,27 +87,27 @@ namespace net._32ba.AOBaker.Editor
             }
         }
 
-        private void ExecuteRayCast(AOBaker[] bakers, List<MeshData> allMeshData,
+        private void ExecuteRayCast(EasyAOBaker[] bakers, List<MeshData> allMeshData,
             UVSpaceRasterizer rasterizer, AOTexturePostFilter postFilter)
         {
             var meshes = allMeshData.Select(d => d.Mesh).ToList();
             var transforms = allMeshData.Select(d => d.LocalToWorld).ToList();
 
             using var bvhData = BVHBuilder.Build(meshes, transforms);
-            Debug.Log($"[AO Baker] BVH built: {meshes.Sum(m => m.triangles.Length / 3)} triangles");
+            Debug.Log($"[EasyAOBaker] BVH built: {meshes.Sum(m => m.triangles.Length / 3)} triangles");
 
             foreach (var baker in bakers)
                 BakeForBaker(baker, rasterizer, postFilter,
                     (meshData, res) => ComputeRayCastAO(meshData, baker, res, bvhData, rasterizer, postFilter));
         }
 
-        private void BakeForBaker(AOBaker baker, UVSpaceRasterizer rasterizer, AOTexturePostFilter postFilter,
+        private void BakeForBaker(EasyAOBaker baker, UVSpaceRasterizer rasterizer, AOTexturePostFilter postFilter,
             System.Func<MeshData, int, Texture2D> bakeFunc)
         {
             var renderer = baker.GetComponent<Renderer>();
             if (renderer == null)
             {
-                Debug.LogWarning($"[AO Baker] No Renderer on '{baker.gameObject.name}'. Skipping.");
+                Debug.LogWarning($"[EasyAOBaker] No Renderer on '{baker.gameObject.name}'. Skipping.");
                 return;
             }
 
@@ -157,7 +157,7 @@ namespace net._32ba.AOBaker.Editor
                 var meshFilter = mr.GetComponent<MeshFilter>();
                 if (meshFilter == null || meshFilter.sharedMesh == null)
                 {
-                    Debug.LogWarning($"[AO Baker] No mesh on '{renderer.name}'. Skipping.");
+                    Debug.LogWarning($"[EasyAOBaker] No mesh on '{renderer.name}'. Skipping.");
                     return null;
                 }
                 return new MeshData
@@ -184,14 +184,14 @@ namespace net._32ba.AOBaker.Editor
             return result;
         }
 
-        private List<GameObject> BuildOccluderScene(List<MeshData> meshDataList, AOBaker settings)
+        private List<GameObject> BuildOccluderScene(List<MeshData> meshDataList, EasyAOBaker settings)
         {
             var occluders = new List<GameObject>();
-            var unlitMat = new Material(Shader.Find("Hidden/AOBaker/DepthOnly"));
+            var unlitMat = new Material(Shader.Find("Hidden/EasyAOBaker/DepthOnly"));
 
             foreach (var data in meshDataList)
             {
-                var go = new GameObject("AOBaker_Occluder")
+                var go = new GameObject("EasyAOBaker_Occluder")
                 {
                     hideFlags = HideFlags.HideAndDontSave
                 };
@@ -250,7 +250,7 @@ namespace net._32ba.AOBaker.Editor
 
         private Texture2D BakeAOForMesh(
             MeshData meshData,
-            AOBaker settings,
+            EasyAOBaker settings,
             int resolution,
             int depthTexSize,
             DepthMapRenderer.DepthRenderResult depthResult,
@@ -263,7 +263,7 @@ namespace net._32ba.AOBaker.Editor
 
         private Texture2D ComputeRayCastAO(
             MeshData meshData,
-            AOBaker settings,
+            EasyAOBaker settings,
             int resolution,
             BVHBuilder.BVHData bvhData,
             UVSpaceRasterizer rasterizer,
@@ -272,7 +272,7 @@ namespace net._32ba.AOBaker.Editor
             return BakeWithCompute(meshData, settings, resolution, rasterizer, postFilter,
                 rasterResult =>
                 {
-                    var shader = AOBakerAssetLoader.LoadComputeShader("RayCastBake");
+                    var shader = EasyAOBakerAssetLoader.LoadComputeShader("RayCastBake");
                     int kernel = shader.FindKernel("BakeRayCastAO");
 
                     var aoRT = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.ARGBFloat)
@@ -307,7 +307,7 @@ namespace net._32ba.AOBaker.Editor
 
         private Texture2D BakeWithCompute(
             MeshData meshData,
-            AOBaker settings,
+            EasyAOBaker settings,
             int resolution,
             UVSpaceRasterizer rasterizer,
             AOTexturePostFilter postFilter,
@@ -315,7 +315,7 @@ namespace net._32ba.AOBaker.Editor
         {
             if (meshData.Mesh.uv == null || meshData.Mesh.uv.Length == 0)
             {
-                Debug.LogWarning($"[AO Baker] Mesh on '{meshData.Renderer.name}' has no UV. Skipping.");
+                Debug.LogWarning($"[EasyAOBaker] Mesh on '{meshData.Renderer.name}' has no UV. Skipping.");
                 return null;
             }
 
@@ -340,11 +340,11 @@ namespace net._32ba.AOBaker.Editor
         private RenderTexture ComputeSSAO(
             UVSpaceRasterizer.RasterizeResult rasterResult,
             DepthMapRenderer.DepthRenderResult depthResult,
-            AOBaker settings,
+            EasyAOBaker settings,
             int resolution,
             int depthTexSize)
         {
-            var ssaoShader = AOBakerAssetLoader.LoadComputeShader("SSAOBake");
+            var ssaoShader = EasyAOBakerAssetLoader.LoadComputeShader("SSAOBake");
             int kernel = ssaoShader.FindKernel("BakeAO");
 
             var aoRT = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.ARGBFloat)
@@ -386,7 +386,7 @@ namespace net._32ba.AOBaker.Editor
             return aoRT;
         }
 
-        private void ApplyAOToMaterials(MeshData meshData, Texture2D aoTex, AOBaker settings)
+        private void ApplyAOToMaterials(MeshData meshData, Texture2D aoTex, EasyAOBaker settings)
         {
             if (_buildContext != null)
             {
@@ -396,7 +396,7 @@ namespace net._32ba.AOBaker.Editor
 
             if (settings.targetShader == AOTargetShader.VertexColor)
             {
-                Debug.Log($"[AO Baker] Applying AO to vertex colors: {meshData.Renderer.name}");
+                Debug.Log($"[EasyAOBaker] Applying AO to vertex colors: {meshData.Renderer.name}");
                 ShaderAOSlotDetector.BakeAOToVertexColors(meshData.Mesh, aoTex);
                 return;
             }
@@ -425,13 +425,13 @@ namespace net._32ba.AOBaker.Editor
                 bool applied = ShaderAOSlotDetector.TryApplyAO(clonedMat, aoTex, settings);
                 if (applied)
                 {
-                    Debug.Log($"[AO Baker] Applied AO to material '{mat.name}' (shader: {mat.shader.name})");
+                    Debug.Log($"[EasyAOBaker] Applied AO to material '{mat.name}' (shader: {mat.shader.name})");
                     newMats[i] = clonedMat;
                     anyApplied = true;
                 }
                 else
                 {
-                    Debug.LogWarning($"[AO Baker] Could not apply AO to material '{mat.name}' " +
+                    Debug.LogWarning($"[EasyAOBaker] Could not apply AO to material '{mat.name}' " +
                         $"(shader: {mat.shader.name}). No matching AO slot found.");
                     newMats[i] = mat;
                 }
@@ -440,7 +440,7 @@ namespace net._32ba.AOBaker.Editor
             if (anyApplied)
             {
                 meshData.Renderer.sharedMaterials = newMats;
-                Debug.Log($"[AO Baker] Reassigned materials on '{meshData.Renderer.name}'");
+                Debug.Log($"[EasyAOBaker] Reassigned materials on '{meshData.Renderer.name}'");
             }
         }
 

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace net._32ba.AOBaker.Editor
+namespace net._32ba.EasyAOBaker.Editor
 {
     public class AOTexturePostFilter
     {
@@ -14,8 +14,8 @@ namespace net._32ba.AOBaker.Editor
 
         public AOTexturePostFilter()
         {
-            _blurShader = AOBakerAssetLoader.LoadComputeShader("AOBlur");
-            _paddingShader = AOBakerAssetLoader.LoadComputeShader("AOPadding");
+            _blurShader = EasyAOBakerAssetLoader.LoadComputeShader("AOBlur");
+            _paddingShader = EasyAOBakerAssetLoader.LoadComputeShader("AOPadding");
             _jfaInitKernel = _paddingShader.FindKernel("JFAInit");
             _jfaStepKernel = _paddingShader.FindKernel("JFAStep");
             _jfaApplyKernel = _paddingShader.FindKernel("JFAApply");

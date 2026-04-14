@@ -1,4 +1,4 @@
-Shader "Hidden/AOBaker/DepthOnly"
+Shader "Hidden/EasyAOBaker/DepthOnly"
 {
     Properties
     {

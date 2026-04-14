@@ -1,4 +1,4 @@
-Shader "Hidden/AOBaker/UVRasterize"
+Shader "Hidden/EasyAOBaker/UVRasterize"
 {
     SubShader
     {
