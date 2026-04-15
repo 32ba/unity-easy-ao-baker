@@ -557,6 +557,14 @@ namespace net._32ba.EasyAOBaker.Editor
             tex.Apply(true);
 
             RenderTexture.active = prev;
+
+            // Texture2D.streamingMipmaps の public setter は存在しないため、
+            // SerializedObject 経由で内部フィールドを有効化する。
+            // NDMF ビルドでは AssetContainer に直接追加されるので TextureImporter を通せない。
+            var so = new SerializedObject(tex);
+            so.FindProperty("m_StreamingMipmaps").boolValue = true;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
             return tex;
         }
     }
