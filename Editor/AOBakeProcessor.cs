@@ -139,6 +139,22 @@ namespace net._32ba.EasyAOBaker.Editor
             ApplyAOToMaterials(meshData.Value, aoTex, baker);
         }
 
+        /// <summary>
+        /// materialBakeFlags に基づき、ベイク対象外のサブメッシュをラスタライザから除外するフラグ配列を作る。
+        /// Face_effect のようにブレンドシェイプ時のみ表示されるオーバーレイが、rest poseで
+        /// 原点付近に潰れて他サブメッシュのAO計算に毒を混ぜるのを防ぐ。
+        /// </summary>
+        private static bool[] BuildSubmeshIncludeFlags(MeshData meshData, EasyAOBaker settings)
+        {
+            int submeshCount = meshData.Mesh.subMeshCount;
+            int materialCount = meshData.Renderer.sharedMaterials.Length;
+            int n = Mathf.Max(submeshCount, materialCount);
+            var flags = new bool[n];
+            for (int i = 0; i < n; i++)
+                flags[i] = settings.ShouldBakeMaterial(i);
+            return flags;
+        }
+
         private List<Renderer> CollectAllRenderers()
         {
             return _avatarRoot.GetComponentsInChildren<Renderer>(false)
@@ -303,6 +319,7 @@ namespace net._32ba.EasyAOBaker.Editor
 
                     shader.SetTexture(kernel, "_WorldPositions", rasterResult.Positions);
                     shader.SetTexture(kernel, "_WorldNormals", rasterResult.Normals);
+                    shader.SetTexture(kernel, "_Coverage", rasterResult.Coverage);
                     shader.SetBuffer(kernel, "_BVHNodes", bvhData.NodesBuffer);
                     shader.SetBuffer(kernel, "_BVHTriangles", bvhData.TrianglesBuffer);
                     shader.SetTexture(kernel, "_AOResult", aoRT);
@@ -312,6 +329,7 @@ namespace net._32ba.EasyAOBaker.Editor
                     shader.SetFloat("_MaxRayDistance", settings.maxRayDistance);
                     shader.SetFloat("_RayOriginOffset", settings.rayOriginOffset);
                     shader.SetFloat("_Intensity", settings.intensity);
+                    shader.SetInt("_MaxLayers", UVSpaceRasterizer.MaxLayers);
 
                     bool hasMask = settings.aoMask != null;
                     shader.SetInt("_HasMask", hasMask ? 1 : 0);
@@ -338,17 +356,20 @@ namespace net._32ba.EasyAOBaker.Editor
                 return null;
             }
 
-            var rasterResult = rasterizer.Rasterize(meshData.Mesh, meshData.LocalToWorld, resolution);
+            var includeSubmesh = BuildSubmeshIncludeFlags(meshData, settings);
+            var rasterResult = rasterizer.Rasterize(meshData.Mesh, meshData.LocalToWorld, resolution, includeSubmesh);
             var aoRT = computeAO(rasterResult);
 
             var filteredRT = postFilter.Apply(
-                aoRT, rasterResult.Positions,
+                aoRT, rasterResult.ValidMask,
                 settings.blurIterations, settings.blurRadius);
 
             var aoTex = ConvertToTexture2D(filteredRT, resolution);
 
             rasterResult.Positions.Release();
             rasterResult.Normals.Release();
+            rasterResult.Coverage.Release();
+            rasterResult.ValidMask.Release();
             aoRT.Release();
             if (filteredRT != aoRT)
                 filteredRT.Release();
@@ -381,6 +402,7 @@ namespace net._32ba.EasyAOBaker.Editor
 
             ssaoShader.SetTexture(kernel, "_WorldPositions", rasterResult.Positions);
             ssaoShader.SetTexture(kernel, "_WorldNormals", rasterResult.Normals);
+            ssaoShader.SetTexture(kernel, "_Coverage", rasterResult.Coverage);
             ssaoShader.SetTexture(kernel, "_DepthTextures", depthResult.DepthTextureArray);
             ssaoShader.SetBuffer(kernel, "_ViewProjMatrices", vpBuffer);
             ssaoShader.SetBuffer(kernel, "_CameraForwards", fwdBuffer);
@@ -394,6 +416,7 @@ namespace net._32ba.EasyAOBaker.Editor
             ssaoShader.SetFloat("_Bias", settings.bias);
             ssaoShader.SetFloat("_Intensity", settings.intensity);
             ssaoShader.SetInt("_DepthTexSize", depthTexSize);
+            ssaoShader.SetInt("_MaxLayers", UVSpaceRasterizer.MaxLayers);
 
             int groupsX = Mathf.CeilToInt(resolution / 8.0f);
             int groupsY = Mathf.CeilToInt(resolution / 8.0f);

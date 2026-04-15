@@ -11,13 +11,18 @@ Shader "Hidden/EasyAOBaker/UVRasterize"
         {
             CGPROGRAM
             #pragma vertex vert
-            #pragma geometry geom
             #pragma fragment frag
-            #pragma target 4.5
+            #pragma target 5.0
 
             #include "UnityCG.cginc"
 
-            float _TexelSize; // 1.0 / resolution
+            // ミラーUV等で同一テクセルを複数三角形が覆う場合、
+            // それぞれを別スロットに保存し、後段のAO計算で平均化する。
+            RWTexture2DArray<float4> _OutPositions : register(u1);
+            RWTexture2DArray<float4> _OutNormals : register(u2);
+            RWTexture2D<uint> _OutCoverage : register(u3);
+
+            uint _MaxLayers;
 
             struct appdata
             {
@@ -26,23 +31,16 @@ Shader "Hidden/EasyAOBaker/UVRasterize"
                 float2 uv : TEXCOORD0;
             };
 
-            struct v2g
+            struct v2f
             {
                 float4 pos : SV_POSITION;
                 float3 worldPos : TEXCOORD0;
                 float3 worldNrm : TEXCOORD1;
             };
 
-            struct g2f
+            v2f vert(appdata v)
             {
-                float4 pos : SV_POSITION;
-                float3 worldPos : TEXCOORD0;
-                float3 worldNrm : TEXCOORD1;
-            };
-
-            v2g vert(appdata v)
-            {
-                v2g o;
+                v2f o;
                 o.pos = float4(v.uv.x * 2.0 - 1.0, v.uv.y * 2.0 - 1.0, 0.5, 1.0);
                 #if UNITY_UV_STARTS_AT_TOP
                 o.pos.y = -o.pos.y;
@@ -52,56 +50,18 @@ Shader "Hidden/EasyAOBaker/UVRasterize"
                 return o;
             }
 
-            // 保守的ラスタライズ: 三角形の辺をテクセルサイズ分だけ外側に膨張させる
-            // これによりUVシーム上のギャップを防ぐ
-            [maxvertexcount(3)]
-            void geom(triangle v2g input[3], inout TriangleStream<g2f> stream)
+            // SV_Target: 有効マスク（JFAパディング用）。任意の被覆位置に 1 を書く
+            float4 frag(v2f i) : SV_Target
             {
-                // 三角形の辺ベクトルと法線から膨張方向を計算
-                float2 edge0 = input[1].pos.xy - input[0].pos.xy;
-                float2 edge1 = input[2].pos.xy - input[1].pos.xy;
-                float2 edge2 = input[0].pos.xy - input[2].pos.xy;
-
-                // 各頂点の膨張方向（隣接2辺の法線の平均）
-                float2 expand0 = normalize(float2(-edge2.y, edge2.x) + float2(-edge0.y, edge0.x));
-                float2 expand1 = normalize(float2(-edge0.y, edge0.x) + float2(-edge1.y, edge1.x));
-                float2 expand2 = normalize(float2(-edge1.y, edge1.x) + float2(-edge2.y, edge2.x));
-
-                // 三角形の向き判定（反時計回りなら反転）
-                float cross = edge0.x * edge1.y - edge0.y * edge1.x;
-                float sign = cross > 0 ? 1.0 : -1.0;
-
-                // 膨張なし: 三角形の重複による線アーティファクトを防止
-                // サブピクセル三角形のギャップはJFAパディングが処理する
-                float expandAmount = 0;
-
-                g2f o;
-
-                o.pos = input[0].pos;
-                o.pos.xy += expand0 * expandAmount * sign;
-                o.worldPos = input[0].worldPos;
-                o.worldNrm = input[0].worldNrm;
-                stream.Append(o);
-
-                o.pos = input[1].pos;
-                o.pos.xy += expand1 * expandAmount * sign;
-                o.worldPos = input[1].worldPos;
-                o.worldNrm = input[1].worldNrm;
-                stream.Append(o);
-
-                o.pos = input[2].pos;
-                o.pos.xy += expand2 * expandAmount * sign;
-                o.worldPos = input[2].worldPos;
-                o.worldNrm = input[2].worldNrm;
-                stream.Append(o);
-            }
-
-            void frag(g2f i,
-                out float4 position : SV_Target0,
-                out float4 normal : SV_Target1)
-            {
-                position = float4(i.worldPos, 1.0);
-                normal = float4(i.worldNrm, 1.0);
+                uint2 px = uint2(i.pos.xy);
+                uint slot;
+                InterlockedAdd(_OutCoverage[px], 1, slot);
+                if (slot < _MaxLayers)
+                {
+                    _OutPositions[uint3(px, slot)] = float4(i.worldPos, 1.0);
+                    _OutNormals[uint3(px, slot)] = float4(i.worldNrm, 1.0);
+                }
+                return float4(1, 1, 1, 1);
             }
             ENDCG
         }

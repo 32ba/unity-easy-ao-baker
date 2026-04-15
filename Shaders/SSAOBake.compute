@@ -1,12 +1,14 @@
 // SSAO AO Bake Compute Shader
-// 多方向深度テクスチャを使用してUV空間のAOを計算する
+// 多方向深度テクスチャを使用してUV空間のAOを計算する。
+// UV重複時は各三角形分のAOを計算して平均化する。
 
 #pragma kernel BakeAO
 
 // 入力
-Texture2D<float4> _WorldPositions;   // UV空間ラスタライズ結果: ワールド座標
-Texture2D<float4> _WorldNormals;     // UV空間ラスタライズ結果: ワールド法線
-Texture2DArray<float> _DepthTextures; // 多方向深度マップ
+Texture2DArray<float4> _WorldPositions;   // UV空間ラスタライズ結果: ワールド座標 (最大_MaxLayersスロット)
+Texture2DArray<float4> _WorldNormals;     // UV空間ラスタライズ結果: ワールド法線
+Texture2D<uint> _Coverage;                // 各テクセルを覆った三角形数
+Texture2DArray<float> _DepthTextures;     // 多方向深度マップ
 StructuredBuffer<float4x4> _ViewProjMatrices; // 各方向のVP行列
 StructuredBuffer<float3> _CameraForwards;     // 各カメラの前方ベクトル
 
@@ -20,6 +22,7 @@ float _Radius;
 float _Bias;
 float _Intensity;
 int _DepthTexSize;
+int _MaxLayers;
 
 // 出力
 RWTexture2D<float4> _AOResult;
@@ -49,30 +52,11 @@ float3 CosineSampleHemisphere(int index, float3 normal, float2 seed)
     return normalize(tangent * x + bitangent * y + normal * z);
 }
 
-[numthreads(8, 8, 1)]
-void BakeAO(uint3 id : SV_DispatchThreadID)
+float ComputeAOForSample(float3 worldPos, float3 worldNrm, uint2 pixel, uint layer)
 {
-    if (id.x >= (uint)_Width || id.y >= (uint)_Height)
-        return;
-
-    float4 worldPosData = _WorldPositions[id.xy];
-    float4 worldNrmData = _WorldNormals[id.xy];
-
-    float3 worldPos = worldPosData.xyz;
-    float3 worldNrm = worldNrmData.xyz;
-
-    // 無効テクセル（UV空間にメッシュが存在しない）
-    if (worldPosData.w < 0.5 || length(worldNrm) < 0.001)
-    {
-        _AOResult[id.xy] = float4(1, 1, 1, 1);
-        return;
-    }
-
-    worldNrm = normalize(worldNrm);
-
     float occlusion = 0.0;
     int validSamples = 0;
-    float2 randomSeed = float2(id.x * 1.37, id.y * 2.41);
+    float2 randomSeed = float2(pixel.x * 1.37 + layer * 7.13, pixel.y * 2.41 + layer * 3.71);
 
     for (int dir = 0; dir < _DirectionCount; dir++)
     {
@@ -89,20 +73,16 @@ void BakeAO(uint3 id : SV_DispatchThreadID)
             float3 sampleOffset = CosineSampleHemisphere(s, worldNrm, randomSeed + float2(dir, s));
             float3 samplePos = worldPos + sampleOffset * _Radius;
 
-            // カメラ空間に射影
             float4 projPos = mul(vp, float4(samplePos, 1.0));
             float2 uv = projPos.xy / projPos.w * 0.5 + 0.5;
             float sampleDepth = projPos.z / projPos.w;
 
-            // UV範囲外チェック
             if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0)
                 continue;
 
-            // 深度テクスチャから実際の深度を取得
             float sceneDepth = _DepthTextures.SampleLevel(
                 sampler_linear_clamp, float3(uv, dir), 0);
 
-            // 遮蔽判定
             if (sampleDepth > sceneDepth + _Bias)
                 occlusion += 1.0;
 
@@ -110,7 +90,43 @@ void BakeAO(uint3 id : SV_DispatchThreadID)
         }
     }
 
-    float ao = 1.0 - (occlusion / max(validSamples, 1));
+    return 1.0 - (occlusion / max((float)validSamples, 1.0));
+}
+
+[numthreads(8, 8, 1)]
+void BakeAO(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Width || id.y >= (uint)_Height)
+        return;
+
+    uint coverage = _Coverage[id.xy];
+    if (coverage == 0)
+    {
+        _AOResult[id.xy] = float4(1, 1, 1, 1);
+        return;
+    }
+
+    uint layerCount = min(coverage, (uint)_MaxLayers);
+
+    float aoAccum = 0.0;
+    float weightAccum = 0.0;
+
+    for (uint layer = 0; layer < layerCount; layer++)
+    {
+        float4 posData = _WorldPositions.Load(int4(id.xy, layer, 0));
+        float4 nrmData = _WorldNormals.Load(int4(id.xy, layer, 0));
+
+        if (posData.w < 0.5 || length(nrmData.xyz) < 0.001)
+            continue;
+
+        float3 worldNrm = normalize(nrmData.xyz);
+        float ao = ComputeAOForSample(posData.xyz, worldNrm, id.xy, layer);
+
+        aoAccum += ao;
+        weightAccum += 1.0;
+    }
+
+    float ao = weightAccum > 0.0 ? aoAccum / weightAccum : 1.0;
     ao = saturate(pow(abs(ao), _Intensity));
     _AOResult[id.xy] = float4(ao, ao, ao, 1);
 }
