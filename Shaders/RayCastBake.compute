@@ -1,4 +1,5 @@
 // RayCast AO Bake Compute Shader
+// UV重複時は各三角形分のAOを計算して平均化する。
 
 #pragma kernel BakeRayCastAO
 
@@ -15,8 +16,9 @@ struct BVHTriangle
     float3 v0, v1, v2;
 };
 
-Texture2D<float4> _WorldPositions;
-Texture2D<float4> _WorldNormals;
+Texture2DArray<float4> _WorldPositions;
+Texture2DArray<float4> _WorldNormals;
+Texture2D<uint> _Coverage;
 StructuredBuffer<BVHNode> _BVHNodes;
 StructuredBuffer<BVHTriangle> _BVHTriangles;
 
@@ -32,6 +34,7 @@ float _MaxRayDistance;
 float _RayOriginOffset;
 float _Intensity;
 int _HasMask;
+int _MaxLayers;
 
 uint PCGHash(uint input)
 {
@@ -40,9 +43,9 @@ uint PCGHash(uint input)
     return (word >> 22u) ^ word;
 }
 
-float2 PixelJitter(uint2 pixelId)
+float2 PixelJitter(uint2 pixelId, uint layer)
 {
-    uint h1 = PCGHash(pixelId.x + PCGHash(pixelId.y));
+    uint h1 = PCGHash(pixelId.x + PCGHash(pixelId.y + PCGHash(layer * 2654435761u)));
     uint h2 = PCGHash(h1);
     return float2(h1, h2) * 2.3283064365386963e-10;
 }
@@ -148,19 +151,36 @@ bool TraceRay(float3 origin, float3 direction, float maxDist)
     return false;
 }
 
+float ComputeAOForSample(float3 worldPos, float3 worldNrm, uint2 pixel, uint layer)
+{
+    float3 rayOrigin = worldPos + worldNrm * _RayOriginOffset;
+
+    float3 up = abs(worldNrm.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0);
+    float3 tangent = normalize(cross(up, worldNrm));
+    float3 bitangent = cross(worldNrm, tangent);
+
+    float2 jitter = PixelJitter(pixel, layer);
+    int occluded = 0;
+
+    for (int i = 0; i < _RayCount; i++)
+    {
+        float2 xi = frac(Hammersley(i, _RayCount) + jitter);
+        float3 dir = CosineSampleHemisphere(xi, worldNrm, tangent, bitangent);
+        if (TraceRay(rayOrigin, dir, _MaxRayDistance))
+            occluded++;
+    }
+
+    return 1.0 - ((float)occluded / (float)_RayCount);
+}
+
 [numthreads(8, 8, 1)]
 void BakeRayCastAO(uint3 id : SV_DispatchThreadID)
 {
     if (id.x >= (uint)_Width || id.y >= (uint)_Height)
         return;
 
-    float4 worldPosData = _WorldPositions[id.xy];
-    float4 worldNrmData = _WorldNormals[id.xy];
-
-    float3 worldPos = worldPosData.xyz;
-    float3 worldNrm = worldNrmData.xyz;
-
-    if (worldPosData.w < 0.5 || length(worldNrm) < 0.001)
+    uint coverage = _Coverage[id.xy];
+    if (coverage == 0)
     {
         _AOResult[id.xy] = float4(1, 1, 1, 1);
         return;
@@ -178,25 +198,27 @@ void BakeRayCastAO(uint3 id : SV_DispatchThreadID)
         }
     }
 
-    worldNrm = normalize(worldNrm);
-    float3 rayOrigin = worldPos + worldNrm * _RayOriginOffset;
+    uint layerCount = min(coverage, (uint)_MaxLayers);
 
-    float3 up = abs(worldNrm.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0);
-    float3 tangent = normalize(cross(up, worldNrm));
-    float3 bitangent = cross(worldNrm, tangent);
+    float aoAccum = 0.0;
+    float weightAccum = 0.0;
 
-    float2 jitter = PixelJitter(id.xy);
-    int occluded = 0;
-
-    for (int i = 0; i < _RayCount; i++)
+    for (uint layer = 0; layer < layerCount; layer++)
     {
-        float2 xi = frac(Hammersley(i, _RayCount) + jitter);
-        float3 dir = CosineSampleHemisphere(xi, worldNrm, tangent, bitangent);
-        if (TraceRay(rayOrigin, dir, _MaxRayDistance))
-            occluded++;
+        float4 posData = _WorldPositions.Load(int4(id.xy, layer, 0));
+        float4 nrmData = _WorldNormals.Load(int4(id.xy, layer, 0));
+
+        if (posData.w < 0.5 || length(nrmData.xyz) < 0.001)
+            continue;
+
+        float3 worldNrm = normalize(nrmData.xyz);
+        float ao = ComputeAOForSample(posData.xyz, worldNrm, id.xy, layer);
+
+        aoAccum += ao;
+        weightAccum += 1.0;
     }
 
-    float ao = 1.0 - ((float)occluded / (float)_RayCount);
+    float ao = weightAccum > 0.0 ? aoAccum / weightAccum : 1.0;
     ao = saturate(pow(abs(ao), _Intensity));
     _AOResult[id.xy] = float4(ao, ao, ao, 1);
 }
