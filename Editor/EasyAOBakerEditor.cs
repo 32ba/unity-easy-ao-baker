@@ -9,6 +9,13 @@ namespace net._32ba.EasyAOBaker.Editor
         private static readonly string[] ResolutionLabels = { "256", "512", "1024", "2048", "4096" };
         private static readonly int[] ResolutionValues = { 256, 512, 1024, 2048, 4096 };
 
+        private const string LogoLightGuid = "4b66cf3947b6473db5561116944519f8";
+        private const string LogoDarkGuid = "036e3374d2614ed6a9bfb3c2a8bc1bf1";
+        private const float LogoAspect = 1200f / 400f;
+        private const float LogoMaxHeight = 56f;
+        private static Texture2D _cachedLogoLight;
+        private static Texture2D _cachedLogoDark;
+
         private bool _shaderSettingsFoldout = true;
         private bool _advancedFoldout = false;
 
@@ -26,6 +33,8 @@ namespace net._32ba.EasyAOBaker.Editor
         {
             var baker = (EasyAOBaker)target;
             serializedObject.Update();
+
+            DrawLogo();
 
             L.DrawLanguageSwitcher();
 
@@ -64,6 +73,32 @@ namespace net._32ba.EasyAOBaker.Editor
                 EditorGUILayout.Space();
                 EditorGUILayout.HelpBox(L.Tr("msg.play_mode_preserve"), MessageType.Info);
             }
+        }
+
+        private static void DrawLogo()
+        {
+            var logo = EditorGUIUtility.isProSkin
+                ? LoadLogo(LogoDarkGuid, ref _cachedLogoDark)
+                : LoadLogo(LogoLightGuid, ref _cachedLogoLight);
+            if (logo == null) return;
+
+            float inspectorWidth = EditorGUIUtility.currentViewWidth - 24f;
+            float height = Mathf.Min(LogoMaxHeight, inspectorWidth / LogoAspect);
+            float width = height * LogoAspect;
+
+            var rect = GUILayoutUtility.GetRect(inspectorWidth, height);
+            var drawRect = new Rect(rect.x + (rect.width - width) * 0.5f, rect.y, width, height);
+            GUI.DrawTexture(drawRect, logo, ScaleMode.ScaleToFit, true);
+            EditorGUILayout.Space(2);
+        }
+
+        private static Texture2D LoadLogo(string guid, ref Texture2D cache)
+        {
+            if (cache != null) return cache;
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            if (!string.IsNullOrEmpty(path))
+                cache = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            return cache;
         }
 
         private static void DrawUpdateNotification()

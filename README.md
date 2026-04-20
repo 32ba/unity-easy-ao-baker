@@ -1,3 +1,11 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="Editor/Logo/EasyAOBakerLogo_Dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="Editor/Logo/EasyAOBakerLogo.png">
+    <img alt="Easy AO Baker" src="Editor/Logo/EasyAOBakerLogo.png" width="480">
+  </picture>
+</p>
+
 # EasyAOBaker
 
 VRChatアバター向けAOマップベイカー。NDMFプラグインとして動作し、AAOによるメッシュ統合・アトラス化後の最終ジオメトリに対してAOをベイクします。
