@@ -38,7 +38,7 @@ namespace net._32ba.EasyAOBaker.Editor
         /// <summary>
         /// NDMFパイプラインからの実行エントリポイント。
         /// 複数のEasyAOBakerコンポーネントを処理する。
-        /// 深度マップはアバター全体から1回だけ生成し共有する。
+        /// 除外設定が一致する Baker 同士では、深度マップ/BVH を共有する。
         /// </summary>
         public void Execute(EasyAOBaker[] bakers)
         {
@@ -50,6 +50,11 @@ namespace net._32ba.EasyAOBaker.Editor
             }
 
             var allMeshData = CollectMeshData(allRenderers);
+            if (allMeshData.Count == 0)
+            {
+                Debug.LogWarning("[EasyAOBaker] No valid meshes found in avatar.");
+                return;
+            }
 
             // モード別にグループ分け
             var ssaoBakers = bakers.Where(b => b.bakeMode == AOBakeMode.SSAO).ToArray();
@@ -61,10 +66,10 @@ namespace net._32ba.EasyAOBaker.Editor
             try
             {
                 if (ssaoBakers.Length > 0)
-                    ExecuteSSAO(ssaoBakers, allMeshData, rasterizer, postFilter);
+                    ExecuteSSAOGroups(ssaoBakers, allMeshData, rasterizer, postFilter);
 
                 if (raycastBakers.Length > 0)
-                    ExecuteRayCast(raycastBakers, allMeshData, rasterizer, postFilter);
+                    ExecuteRayCastGroups(raycastBakers, allMeshData, rasterizer, postFilter);
             }
             finally
             {
@@ -72,10 +77,28 @@ namespace net._32ba.EasyAOBaker.Editor
             }
         }
 
-        private void ExecuteSSAO(EasyAOBaker[] bakers, List<MeshData> allMeshData,
+        private void ExecuteSSAOGroups(EasyAOBaker[] bakers, List<MeshData> allMeshData,
             UVSpaceRasterizer rasterizer, AOTexturePostFilter postFilter)
         {
-            var occluderObjects = BuildOccluderScene(allMeshData, bakers[0]);
+            foreach (var bakerGroup in bakers.GroupBy(b => BuildOccluderSignature(allMeshData, b)))
+            {
+                var groupBakers = bakerGroup.ToArray();
+                var groupMeshData = CollectOccluderMeshDataForBaker(allMeshData, groupBakers[0]);
+                if (groupMeshData.Count == 0)
+                {
+                    foreach (var baker in groupBakers)
+                        Debug.LogWarning($"[EasyAOBaker] No occluder meshes available for '{baker.name}'. Skipping.");
+                    continue;
+                }
+
+                ExecuteSSAOGroup(groupBakers, groupMeshData, rasterizer, postFilter);
+            }
+        }
+
+        private void ExecuteSSAOGroup(EasyAOBaker[] bakers, List<MeshData> meshData,
+            UVSpaceRasterizer rasterizer, AOTexturePostFilter postFilter)
+        {
+            var occluderObjects = BuildOccluderScene(meshData, bakers[0]);
 
             try
             {
@@ -84,7 +107,7 @@ namespace net._32ba.EasyAOBaker.Editor
                 int maxResolution = bakers.Max(b => b.ResolutionValue);
                 int depthTexSize = Mathf.Min(maxResolution, 1024);
 
-                var sceneBounds = CalculateSceneBounds(allMeshData);
+                var sceneBounds = CalculateSceneBounds(meshData);
                 var directions = FibonacciSphere.GenerateFullSphereDirections(maxDirections);
                 var depthRenderer = new DepthMapRenderer(depthTexSize, maxCaptureDistance);
                 var depthResult = depthRenderer.RenderDepthMaps(directions, sceneBounds, occluderObjects);
@@ -93,7 +116,7 @@ namespace net._32ba.EasyAOBaker.Editor
                 {
                     foreach (var baker in bakers)
                         BakeForBaker(baker, rasterizer, postFilter,
-                            (meshData, res) => BakeAOForMesh(meshData, baker, res, depthTexSize, depthResult, postFilter, rasterizer));
+                            (targetMeshData, res) => BakeAOForMesh(targetMeshData, baker, res, depthTexSize, depthResult, postFilter, rasterizer));
                 }
                 finally
                 {
@@ -106,18 +129,36 @@ namespace net._32ba.EasyAOBaker.Editor
             }
         }
 
-        private void ExecuteRayCast(EasyAOBaker[] bakers, List<MeshData> allMeshData,
+        private void ExecuteRayCastGroups(EasyAOBaker[] bakers, List<MeshData> allMeshData,
             UVSpaceRasterizer rasterizer, AOTexturePostFilter postFilter)
         {
-            var meshes = allMeshData.Select(d => d.Mesh).ToList();
-            var transforms = allMeshData.Select(d => d.LocalToWorld).ToList();
+            foreach (var bakerGroup in bakers.GroupBy(b => BuildOccluderSignature(allMeshData, b)))
+            {
+                var groupBakers = bakerGroup.ToArray();
+                var groupMeshData = CollectOccluderMeshDataForBaker(allMeshData, groupBakers[0]);
+                if (groupMeshData.Count == 0)
+                {
+                    foreach (var baker in groupBakers)
+                        Debug.LogWarning($"[EasyAOBaker] No occluder meshes available for '{baker.name}'. Skipping.");
+                    continue;
+                }
+
+                ExecuteRayCastGroup(groupBakers, groupMeshData, rasterizer, postFilter);
+            }
+        }
+
+        private void ExecuteRayCastGroup(EasyAOBaker[] bakers, List<MeshData> meshData,
+            UVSpaceRasterizer rasterizer, AOTexturePostFilter postFilter)
+        {
+            var meshes = meshData.Select(d => d.Mesh).ToList();
+            var transforms = meshData.Select(d => d.LocalToWorld).ToList();
 
             using var bvhData = BVHBuilder.Build(meshes, transforms);
             Debug.Log($"[EasyAOBaker] BVH built: {meshes.Sum(m => m.triangles.Length / 3)} triangles");
 
             foreach (var baker in bakers)
                 BakeForBaker(baker, rasterizer, postFilter,
-                    (meshData, res) => ComputeRayCastAO(meshData, baker, res, bvhData, rasterizer, postFilter));
+                    (targetMeshData, res) => ComputeRayCastAO(targetMeshData, baker, res, bvhData, rasterizer, postFilter));
         }
 
         private void BakeForBaker(EasyAOBaker baker, UVSpaceRasterizer rasterizer, AOTexturePostFilter postFilter,
@@ -127,6 +168,12 @@ namespace net._32ba.EasyAOBaker.Editor
             if (renderer == null)
             {
                 Debug.LogWarning($"[EasyAOBaker] No Renderer on '{baker.gameObject.name}'. Skipping.");
+                return;
+            }
+
+            if (IsRendererExcludedForBaker(renderer, baker))
+            {
+                Debug.LogWarning($"[EasyAOBaker] Renderer on '{baker.gameObject.name}' is excluded for this baker. Skipping.");
                 return;
             }
 
@@ -160,7 +207,6 @@ namespace net._32ba.EasyAOBaker.Editor
             return _avatarRoot.GetComponentsInChildren<Renderer>(false)
                 .Where(r => r is SkinnedMeshRenderer or MeshRenderer)
                 .Where(r => r.gameObject.activeInHierarchy)
-                .Where(r => r.GetComponent<ExcludeFromAOBake>() == null)
                 .ToList();
         }
 
@@ -170,6 +216,7 @@ namespace net._32ba.EasyAOBaker.Editor
             public Mesh Mesh;
             public Matrix4x4 LocalToWorld;
             public bool IsTemporaryMesh;
+            public ExcludeFromAOBake ExclusionMarker;
         }
 
         private MeshData? GetMeshDataForRenderer(Renderer renderer)
@@ -183,7 +230,8 @@ namespace net._32ba.EasyAOBaker.Editor
                     Renderer = renderer,
                     Mesh = bakedMesh,
                     LocalToWorld = renderer.transform.localToWorldMatrix,
-                    IsTemporaryMesh = true
+                    IsTemporaryMesh = true,
+                    ExclusionMarker = renderer.GetComponent<ExcludeFromAOBake>()
                 };
             }
 
@@ -200,7 +248,8 @@ namespace net._32ba.EasyAOBaker.Editor
                     Renderer = renderer,
                     Mesh = meshFilter.sharedMesh,
                     LocalToWorld = renderer.transform.localToWorldMatrix,
-                    IsTemporaryMesh = false
+                    IsTemporaryMesh = false,
+                    ExclusionMarker = renderer.GetComponent<ExcludeFromAOBake>()
                 };
             }
 
@@ -217,6 +266,33 @@ namespace net._32ba.EasyAOBaker.Editor
                     result.Add(data.Value);
             }
             return result;
+        }
+
+        private static List<MeshData> CollectOccluderMeshDataForBaker(List<MeshData> allMeshData, EasyAOBaker baker)
+        {
+            return allMeshData
+                .Where(meshData => !IsExcludedForBaker(meshData, baker))
+                .ToList();
+        }
+
+        private static string BuildOccluderSignature(List<MeshData> allMeshData, EasyAOBaker baker)
+        {
+            return string.Join(",",
+                allMeshData
+                    .Where(meshData => !IsExcludedForBaker(meshData, baker))
+                    .Select(meshData => meshData.Renderer.GetInstanceID())
+                    .OrderBy(id => id));
+        }
+
+        private static bool IsExcludedForBaker(MeshData meshData, EasyAOBaker baker)
+        {
+            return meshData.ExclusionMarker != null && meshData.ExclusionMarker.ShouldExcludeFor(baker);
+        }
+
+        private static bool IsRendererExcludedForBaker(Renderer renderer, EasyAOBaker baker)
+        {
+            var exclusionMarker = renderer.GetComponent<ExcludeFromAOBake>();
+            return exclusionMarker != null && exclusionMarker.ShouldExcludeFor(baker);
         }
 
         private List<GameObject> BuildOccluderScene(List<MeshData> meshDataList, EasyAOBaker settings)

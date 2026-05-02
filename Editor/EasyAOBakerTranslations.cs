@@ -36,6 +36,16 @@ namespace net._32ba.EasyAOBaker.Editor
                 "シェーダーが自動検出できません。Target Shaderを手動で選択してください。",
                 "无法自动检测着色器。请手动选择Target Shader。",
                 "셰이더를 자동 감지할 수 없습니다. Target Shader를 수동으로 선택해 주세요."),
+            ["msg.exclude_info"] = (
+                "Exclude this Renderer from AO baking. In Advanced Settings, you can choose specific EasyAOBaker components that should still include it.",
+                "この Renderer を AO ベイクから除外します。詳細設定で、この Renderer を除外しない EasyAOBaker を個別に選べます。",
+                "将此 Renderer 排除在 AO 烘焙之外。你可以在高级设置中选择哪些 EasyAOBaker 仍然包含它。",
+                "이 Renderer를 AO 베이크에서 제외합니다. 고급 설정에서 이 Renderer를 제외하지 않을 EasyAOBaker를 개별적으로 선택할 수 있습니다."),
+            ["msg.exclude_no_bakers"] = (
+                "No EasyAOBaker components were found on this object or its parents.",
+                "このオブジェクトからルートまでの親階層に EasyAOBaker が見つかりませんでした。",
+                "从此对象到根层级的父对象中没有找到 EasyAOBaker 组件。",
+                "이 오브젝트에서 루트까지의 부모 계층에서 EasyAOBaker를 찾을 수 없습니다."),
 
             // Sections
             ["section.bake_settings"] = ("Bake Settings", "ベイク設定", "烘焙设置", "베이크 설정"),
@@ -45,6 +55,16 @@ namespace net._32ba.EasyAOBaker.Editor
             ["section.lil_toon"] = ("lilToon AO Settings", "lilToon AO設定", "lilToon AO设置", "lilToon AO 설정"),
             ["section.poiyomi"] = ("Poiyomi AO Settings", "Poiyomi AO設定", "Poiyomi AO设置", "Poiyomi AO 설정"),
             ["section.standard"] = ("Standard AO Settings", "Standard AO設定", "Standard AO设置", "Standard AO 설정"),
+            ["section.exclude_exceptions"] = (
+                "Do Not Exclude For",
+                "除外しない Baker",
+                "不排除的 Baker",
+                "제외하지 않을 Baker"),
+            ["section.exclude_exceptions.tooltip"] = (
+                "Selected EasyAOBaker components will still include this Renderer even though Exclude From AO Bake is attached.",
+                "選択した EasyAOBaker では、Exclude From AO Bake が付いていてもこの Renderer を除外しません。",
+                "即使附加了 Exclude From AO Bake，被选中的 EasyAOBaker 仍会包含此 Renderer。",
+                "선택한 EasyAOBaker에서는 Exclude From AO Bake가 붙어 있어도 이 Renderer를 제외하지 않습니다."),
 
             // Basic
             ["field.resolution"] = ("Resolution", "解像度", "分辨率", "해상도"),
