@@ -77,7 +77,7 @@ namespace net._32ba.EasyAOBaker.Editor
         {
             IsChecking = false;
             CheckError = error;
-            Debug.Log($"[EasyAOBaker] Update check failed: {error}");
+            Debug.LogWarning($"[EasyAOBaker] Update check failed: {error}");
             OnUpdateCheckCompleted?.Invoke();
         }
 

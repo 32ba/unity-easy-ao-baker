@@ -42,10 +42,10 @@ namespace net._32ba.EasyAOBaker.Editor
                 "将此 Renderer 排除在 AO 烘焙之外。你可以在高级设置中选择哪些 EasyAOBaker 仍然包含它。",
                 "이 Renderer를 AO 베이크에서 제외합니다. 고급 설정에서 이 Renderer를 제외하지 않을 EasyAOBaker를 개별적으로 선택할 수 있습니다."),
             ["msg.exclude_no_bakers"] = (
-                "No EasyAOBaker components were found on this object or its parents.",
-                "このオブジェクトからルートまでの親階層に EasyAOBaker が見つかりませんでした。",
-                "从此对象到根层级的父对象中没有找到 EasyAOBaker 组件。",
-                "이 오브젝트에서 루트까지의 부모 계층에서 EasyAOBaker를 찾을 수 없습니다."),
+                "No EasyAOBaker components were found in this avatar hierarchy.",
+                "このアバター階層内に EasyAOBaker が見つかりませんでした。",
+                "在此头像层级中未找到 EasyAOBaker 组件。",
+                "이 아바타 계층에서 EasyAOBaker를 찾을 수 없습니다."),
 
             // Sections
             ["section.bake_settings"] = ("Bake Settings", "ベイク設定", "烘焙设置", "베이크 설정"),

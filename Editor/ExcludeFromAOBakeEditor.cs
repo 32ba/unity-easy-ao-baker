@@ -28,7 +28,7 @@ namespace net._32ba.EasyAOBaker.Editor
 
         private static void DrawBakerSelection(ExcludeFromAOBake exclusion)
         {
-            var candidates = CollectBakersToRoot(exclusion.transform);
+            var candidates = CollectBakersInAvatar(exclusion.transform);
             var selected = new HashSet<EasyAOBaker>(
                 (exclusion.doNotExcludeFor ?? new EasyAOBaker[0]).Where(b => b != null));
 
@@ -58,16 +58,35 @@ namespace net._32ba.EasyAOBaker.Editor
             }
         }
 
-        private static List<EasyAOBaker> CollectBakersToRoot(Transform start)
+        private static List<EasyAOBaker> CollectBakersInAvatar(Transform start)
         {
-            var bakers = new List<EasyAOBaker>();
-            var current = start;
-            while (current != null)
+            var avatarRoot = FindAvatarRoot(start);
+            if (avatarRoot == null)
+                return new List<EasyAOBaker>();
+
+            return avatarRoot.GetComponentsInChildren<EasyAOBaker>(true)
+                .Distinct()
+                .ToList();
+        }
+
+        /// <summary>
+        /// VRC Avatar Descriptor を優先してアバタールートを探し、見つからなければ最上位を返す。
+        /// </summary>
+        private static GameObject FindAvatarRoot(Transform start)
+        {
+            var descriptorType = System.Type.GetType("VRC.SDKBase.VRC_AvatarDescriptor, VRC.SDKBase");
+            if (descriptorType != null)
             {
-                bakers.AddRange(current.GetComponents<EasyAOBaker>());
-                current = current.parent;
+                var current = start;
+                while (current != null)
+                {
+                    if (current.GetComponent(descriptorType) != null)
+                        return current.gameObject;
+                    current = current.parent;
+                }
             }
-            return bakers;
+
+            return start.root != null ? start.root.gameObject : null;
         }
 
         private static string GetTransformPath(Transform transform)
