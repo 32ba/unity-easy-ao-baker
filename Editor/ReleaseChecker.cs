@@ -1,5 +1,7 @@
 using System;
 using System.Collections;
+using System.Security.Cryptography;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -15,7 +17,7 @@ namespace net._32ba.EasyAOBaker.Editor
     {
         private const string PackageId = "net.32ba.easy-ao-baker";
         private const string ReleasePageUrl = "https://github.com/32ba/unity-easy-ao-baker/releases";
-        private const string LastCheckKey = "net.32ba.EasyAOBaker.LastVersionCheck";
+        private const string LastCheckKeyPrefix = "net.32ba.EasyAOBaker.LastVersionCheck";
         private const double CheckIntervalHours = 24.0;
 
         private static readonly VpmApiClient Api = new VpmApiClient(PackageId);
@@ -34,7 +36,11 @@ namespace net._32ba.EasyAOBaker.Editor
 
         public static void CheckForUpdates(bool forceCheck = false)
         {
-            if (!forceCheck && !ShouldCheckForUpdates()) return;
+            if (!forceCheck && !ShouldCheckForUpdates())
+            {
+                Debug.Log($"[EasyAOBaker] Skipping update check: checked within the last {CheckIntervalHours:0} hours for this project.");
+                return;
+            }
 
             IsChecking = true;
             HasNewVersion = false;
@@ -62,7 +68,7 @@ namespace net._32ba.EasyAOBaker.Editor
 
             LatestVersion = latest;
             string current = GetCurrentVersion();
-            EditorPrefs.SetString(LastCheckKey, DateTime.Now.ToBinary().ToString());
+            EditorPrefs.SetString(GetLastCheckKey(), DateTime.Now.ToBinary().ToString());
 
             if (VersionUtility.IsNewerVersion(current, latest))
             {
@@ -105,7 +111,7 @@ namespace net._32ba.EasyAOBaker.Editor
 
         private static bool ShouldCheckForUpdates()
         {
-            string stored = EditorPrefs.GetString(LastCheckKey, "");
+            string stored = EditorPrefs.GetString(GetLastCheckKey(), "");
             if (string.IsNullOrEmpty(stored)) return true;
 
             if (long.TryParse(stored, out long binary))
@@ -114,6 +120,25 @@ namespace net._32ba.EasyAOBaker.Editor
                 return (DateTime.Now - last).TotalHours >= CheckIntervalHours;
             }
             return true;
+        }
+
+        private static string GetLastCheckKey()
+        {
+            return $"{LastCheckKeyPrefix}.{GetProjectScopeSuffix()}";
+        }
+
+        private static string GetProjectScopeSuffix()
+        {
+            string projectPath = Application.dataPath;
+            if (string.IsNullOrEmpty(projectPath))
+                return "unknown";
+
+            using (var sha1 = SHA1.Create())
+            {
+                byte[] bytes = Encoding.UTF8.GetBytes(projectPath);
+                byte[] hash = sha1.ComputeHash(bytes);
+                return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+            }
         }
     }
 
