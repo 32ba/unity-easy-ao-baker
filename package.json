@@ -1,7 +1,7 @@
 {
   "name": "net.32ba.easy-ao-baker",
   "displayName": "EasyAOBaker",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "unity": "2022.3",
   "description": "AO map baker for VRChat avatars (RayCast / SSAO). Non-destructive NDMF plugin.",
   "license": "Zlib",

@@ -69,6 +69,10 @@ namespace net._32ba.EasyAOBaker.Editor
                 HasNewVersion = true;
                 Debug.Log($"[EasyAOBaker] New version available: {current} → {latest}");
             }
+            else
+            {
+                Debug.Log($"[EasyAOBaker] Package is up to date: {current}");
+            }
 
             OnUpdateCheckCompleted?.Invoke();
         }
