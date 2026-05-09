@@ -45,6 +45,9 @@ namespace net._32ba.EasyAOBaker
         [Range(0.001f, 10f)]
         public float maxRayDistance = 2.0f;
 
+        [Range(0f, 4f)]
+        public float rayDistanceFalloff = 0.0f;
+
         [Range(0f, 0.01f)]
         public float rayOriginOffset = 0.001f;
 

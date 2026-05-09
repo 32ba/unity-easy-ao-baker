@@ -31,6 +31,7 @@ int _Width;
 int _Height;
 int _RayCount;
 float _MaxRayDistance;
+float _RayDistanceFalloff;
 float _RayOriginOffset;
 float _Intensity;
 int _HasMask;
@@ -76,8 +77,9 @@ float3 CosineSampleHemisphere(float2 xi, float3 normal, float3 tangent, float3 b
     return normalize(tangent * x + bitangent * y + normal * z);
 }
 
-bool RayTriangleIntersect(float3 orig, float3 dir, float3 v0, float3 v1, float3 v2, float maxDist)
+bool RayTriangleIntersect(float3 orig, float3 dir, float3 v0, float3 v1, float3 v2, float maxDist, out float hitT)
 {
+    hitT = 0.0;
     float3 edge1 = v1 - v0;
     float3 edge2 = v2 - v0;
     float3 h = cross(dir, edge2);
@@ -100,7 +102,13 @@ bool RayTriangleIntersect(float3 orig, float3 dir, float3 v0, float3 v1, float3 
         return false;
 
     float t = f * dot(edge2, q);
-    return t > 0.0 && t < maxDist;
+    if (t > 0.0 && t < maxDist)
+    {
+        hitT = t;
+        return true;
+    }
+
+    return false;
 }
 
 bool RayAABBIntersect(float3 orig, float3 invDir, float3 bmin, float3 bmax, float maxDist)
@@ -116,9 +124,12 @@ bool RayAABBIntersect(float3 orig, float3 invDir, float3 bmin, float3 bmax, floa
     return enter <= exit && exit >= 0.0 && enter < maxDist;
 }
 
-bool TraceRay(float3 origin, float3 direction, float maxDist)
+bool TraceRay(float3 origin, float3 direction, float maxDist, out float closestHit)
 {
     float3 invDir = 1.0 / direction;
+    bool findClosest = _RayDistanceFalloff > 0.0;
+    closestHit = maxDist;
+    bool hit = false;
 
     int stack[32];
     int stackPtr = 0;
@@ -137,8 +148,15 @@ bool TraceRay(float3 origin, float3 direction, float maxDist)
             for (int i = 0; i < node.count; i++)
             {
                 BVHTriangle tri = _BVHTriangles[node.leftFirst + i];
-                if (RayTriangleIntersect(origin, direction, tri.v0, tri.v1, tri.v2, maxDist))
-                    return true;
+                float hitT;
+                if (RayTriangleIntersect(origin, direction, tri.v0, tri.v1, tri.v2, maxDist, hitT))
+                {
+                    if (!findClosest)
+                        return true;
+
+                    hit = true;
+                    closestHit = min(closestHit, hitT);
+                }
             }
         }
         else
@@ -148,7 +166,7 @@ bool TraceRay(float3 origin, float3 direction, float maxDist)
         }
     }
 
-    return false;
+    return hit;
 }
 
 float ComputeAOForSample(float3 worldPos, float3 worldNrm, uint2 pixel, uint layer)
@@ -160,17 +178,23 @@ float ComputeAOForSample(float3 worldPos, float3 worldNrm, uint2 pixel, uint lay
     float3 bitangent = cross(worldNrm, tangent);
 
     float2 jitter = PixelJitter(pixel, layer);
-    int occluded = 0;
+    float occlusion = 0.0;
 
     for (int i = 0; i < _RayCount; i++)
     {
         float2 xi = frac(Hammersley(i, _RayCount) + jitter);
         float3 dir = CosineSampleHemisphere(xi, worldNrm, tangent, bitangent);
-        if (TraceRay(rayOrigin, dir, _MaxRayDistance))
-            occluded++;
+        float hitDistance;
+        if (TraceRay(rayOrigin, dir, _MaxRayDistance, hitDistance))
+        {
+            float hitWeight = _RayDistanceFalloff > 0.0
+                ? pow(saturate(1.0 - hitDistance / _MaxRayDistance), _RayDistanceFalloff)
+                : 1.0;
+            occlusion += hitWeight;
+        }
     }
 
-    return 1.0 - ((float)occluded / (float)_RayCount);
+    return 1.0 - (occlusion / (float)_RayCount);
 }
 
 [numthreads(8, 8, 1)]

@@ -403,6 +403,7 @@ namespace net._32ba.EasyAOBaker.Editor
                     shader.SetInt("_Height", resolution);
                     shader.SetInt("_RayCount", settings.rayCount);
                     shader.SetFloat("_MaxRayDistance", settings.maxRayDistance);
+                    shader.SetFloat("_RayDistanceFalloff", settings.rayDistanceFalloff);
                     shader.SetFloat("_RayOriginOffset", settings.rayOriginOffset);
                     shader.SetFloat("_Intensity", settings.intensity);
                     shader.SetInt("_MaxLayers", UVSpaceRasterizer.MaxLayers);

@@ -144,6 +144,12 @@ namespace net._32ba.EasyAOBaker.Editor
                 "レイの長さ（m）。短いほど局所的、長いほど遠方の形状も考慮。",
                 "射线长度（米）。越短越局部，越长考虑越远的几何体。",
                 "레이 길이(m). 짧을수록 국소적, 길수록 먼 지오메트리까지 고려."),
+            ["field.ray_distance_falloff"] = ("Distance Falloff", "距離フェード", "距离衰减", "거리 페이드"),
+            ["field.ray_distance_falloff.tooltip"] = (
+                "Weakens distant ray hits. Increase this when using a long Max Ray Distance to create wider, softer stylized AO without over-darkening.",
+                "遠いレイヒットを弱くします。長いレイ最大距離で広く柔らかい表現寄りのAOを作りつつ、暗くなりすぎるのを抑える場合に上げます。",
+                "减弱远距离射线命中。使用较长射线最大距离时提高此值，可创建更宽、更柔和的风格化AO并避免过暗。",
+                "먼 거리 레이 히트를 약하게 합니다. 긴 레이 최대 거리로 넓고 부드러운 스타일 AO를 만들면서 과도하게 어두워지는 것을 줄일 때 올립니다."),
             ["field.ray_origin_offset"] = ("Ray Origin Offset", "レイ原点オフセット", "射线起点偏移", "레이 원점 오프셋"),
             ["field.ray_origin_offset.tooltip"] = (
                 "Distance from surface to start rays. Prevents self-intersection.",
