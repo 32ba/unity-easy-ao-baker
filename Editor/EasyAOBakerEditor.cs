@@ -271,6 +271,7 @@ namespace net._32ba.EasyAOBaker.Editor
                 EditorGUILayout.LabelField("RayCast", EditorStyles.miniBoldLabel);
                 DrawField("rayCount", "field.ray_count");
                 DrawField("maxRayDistance", "field.max_ray_distance");
+                DrawField("rayDistanceFalloff", "field.ray_distance_falloff");
                 DrawField("rayOriginOffset", "field.ray_origin_offset");
             }
             else
